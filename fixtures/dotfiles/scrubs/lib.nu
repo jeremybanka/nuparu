@@ -18,26 +18,26 @@ export def load-settings [] {
   | each {|line| $line | str trim }
   | where {|line| $line != "" and not ($line | str starts-with "#") }
   | reduce --fold {} {|line, acc|
-      let parsed = ($line | parse --regex '^(?P<key>[A-Za-z_][A-Za-z0-9_]*)=(?P<value>.*)$')
-      if ($parsed | is-empty) {
-        $acc
+    let parsed = ($line | parse --regex '^(?P<key>[A-Za-z_][A-Za-z0-9_]*)=(?P<value>.*)$')
+    if ($parsed | is-empty) {
+      $acc
+    } else {
+      let entry = ($parsed | first)
+      let raw_value = ($entry.value | str trim)
+      let value = if (
+        ($raw_value | str length) >= 2
+        and (
+          (($raw_value | str starts-with '"') and ($raw_value | str ends-with '"'))
+          or (($raw_value | str starts-with "'") and ($raw_value | str ends-with "'"))
+        )
+      ) {
+        $raw_value | str substring 1..-1
       } else {
-        let entry = ($parsed | first)
-        let raw_value = ($entry.value | str trim)
-        let value = if (
-          ($raw_value | str length) >= 2
-          and (
-            (($raw_value | str starts-with '"') and ($raw_value | str ends-with '"'))
-            or (($raw_value | str starts-with "'") and ($raw_value | str ends-with "'"))
-          )
-        ) {
-          $raw_value | str substring 1..-1
-        } else {
-          $raw_value
-        }
-        $acc | upsert $entry.key $value
+        $raw_value
       }
+      $acc | upsert $entry.key $value
     }
+  }
 }
 
 export def get-setting [
