@@ -3,8 +3,10 @@
   "displayName": "nufmt",
   "description": "Format Nushell files with nufmt.",
   "version": "0.0.1",
-  "publisher": "jem",
+  "publisher": "jeremybanka",
+  "author": "jeremybanka",
   "license": "MIT",
+  "packageManager": "pnpm@11.1.2",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -17,9 +19,15 @@
     "formatter",
     "nufmt"
   ],
-  "main": "./extension.js",
+  "main": "./dist/extension.js",
+  "files": [
+    "dist",
+    "README.md",
+    "package.json"
+  ],
   "activationEvents": [
-    "onLanguage:nushell"
+    "onLanguage:nushell",
+    "onCommand:nufmt.formatDocument"
   ],
   "contributes": {
     "languages": [
@@ -34,13 +42,20 @@
         ]
       }
     ],
+    "commands": [
+      {
+        "command": "nufmt.formatDocument",
+        "title": "Format Current Nushell File",
+        "category": "nufmt"
+      }
+    ],
     "configuration": {
       "title": "nufmt",
       "properties": {
         "nufmt.path": {
           "type": "string",
-          "default": "nufmt",
-          "description": "Path to the nufmt executable."
+          "default": "",
+          "description": "Path to the nufmt executable. Leave empty to auto-discover common locations."
         },
         "nufmt.extraArgs": {
           "type": "array",
@@ -54,6 +69,17 @@
     }
   },
   "scripts": {
-    "lint": "node --check extension.js"
+    "build": "tsdown",
+    "check": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "package": "pnpm build && vsce package --allow-missing-repository",
+    "install:codium": "pnpm package && /Applications/VSCodium.app/Contents/Resources/app/bin/codium --install-extension *.vsix --force"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/vscode": "^1.100.0",
+    "@vscode/vsce": "^3.6.2",
+    "tsdown": "^0.14.2",
+    "typescript": "^5.9.3"
   }
 }
