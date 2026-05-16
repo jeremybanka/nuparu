@@ -22,6 +22,15 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
         let content = trimmed_end.trim_start();
 
         if content.is_empty() {
+            let previous_content = previous_nonempty_content(&lines, index);
+            let next_content = next_nonempty_content(&lines, index);
+
+            if previous_content.is_some_and(ends_with_opener)
+                || next_content.is_some_and(starts_with_closer)
+            {
+                continue;
+            }
+
             blank_run = blank_run.saturating_add(1);
             if blank_run <= config.max_blank_lines {
                 result.push('\n');
@@ -271,6 +280,25 @@ fn starts_with_closer(content: &str) -> bool {
     matches!(content.chars().next(), Some('}' | ']' | ')'))
 }
 
+fn ends_with_opener(content: &str) -> bool {
+    matches!(content.chars().last(), Some('{' | '[' | '('))
+}
+
+fn previous_nonempty_content<'a>(lines: &[SourceLine<'a>], index: usize) -> Option<&'a str> {
+    lines[..index]
+        .iter()
+        .rev()
+        .map(|line| line.text.trim())
+        .find(|content| !content.is_empty())
+}
+
+fn next_nonempty_content<'a>(lines: &[SourceLine<'a>], index: usize) -> Option<&'a str> {
+    lines[index + 1..]
+        .iter()
+        .map(|line| line.text.trim())
+        .find(|content| !content.is_empty())
+}
+
 fn next_indent_level(content: &str, current_indent: usize) -> usize {
     let mut indent = current_indent;
     let mut chars = content.chars().peekable();
@@ -361,6 +389,13 @@ mod tests {
         let input = "let x = 1\n\n\n\nlet y = 2\n";
         let output = format_text(input, &Configuration::default());
         assert_eq!(output, "let x = 1\n\nlet y = 2\n");
+    }
+
+    #[test]
+    fn removes_blank_lines_at_block_edges() {
+        let input = "def demo [] {\n\n  print \"hi\"\n\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, "def demo [] {\n  print \"hi\"\n}\n");
     }
 
     #[test]
