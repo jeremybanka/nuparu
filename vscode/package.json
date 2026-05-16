@@ -1,0 +1,59 @@
+{
+  "name": "nufmt-vscode",
+  "displayName": "nufmt",
+  "description": "Format Nushell files with nufmt.",
+  "version": "0.0.1",
+  "publisher": "jem",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Formatters"
+  ],
+  "keywords": [
+    "nushell",
+    "nu",
+    "formatter",
+    "nufmt"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:nushell"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "nushell",
+        "aliases": [
+          "Nushell",
+          "nushell"
+        ],
+        "extensions": [
+          ".nu"
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "nufmt",
+      "properties": {
+        "nufmt.path": {
+          "type": "string",
+          "default": "nufmt",
+          "description": "Path to the nufmt executable."
+        },
+        "nufmt.extraArgs": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional arguments passed to nufmt."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "lint": "node --check extension.js"
+  }
+}
