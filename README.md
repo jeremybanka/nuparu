@@ -96,8 +96,31 @@ Planned editor follow-up work is tracked in
 [docs/TODO.md](/Users/jem/dojo/nufmt/docs/TODO.md:1), including:
 
 - VS Code polish and publishing
-- Helix integration
 - Zed integration
+
+### Helix
+
+This repo now includes a project-local Helix override in
+[.helix/languages.toml](/Users/jem/dojo/nufmt/.helix/languages.toml:1).
+
+It configures the built-in `nu` language to:
+
+- use `nu-lsp` as the language server
+- use `nufmt` as the formatter
+- enable `auto-format`
+- use a `text-width` of `80`
+
+If `nufmt` is installed on your `PATH`, Helix should pick it up automatically
+for this workspace. You can verify that with:
+
+```bash
+hx --health nu
+```
+
+In this repo, that should report both:
+
+- `nu-lsp` configured
+- `nufmt` configured as the formatter
 
 ## Documentation
 

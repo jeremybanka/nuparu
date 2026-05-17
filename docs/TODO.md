@@ -9,12 +9,11 @@
 - Decide whether the extension should bundle platform binaries, download releases, or delegate to a user-installed `nufmt`.
 - Add range-formatting support later only if the formatter can guarantee safe partial formatting.
 
-### Helix strategy
+### Helix
 
-- Prefer direct formatter integration through Helix language configuration rather than a custom extension.
-- Add a documented `.helix/languages.toml` example that points Nushell formatting at `nufmt`.
-- Confirm stdin/stdout behavior and exit codes are clean for Helix’s formatter contract.
-- If needed, add a `--check` mode for editor and CI workflows.
+- Keep the project-local [.helix/languages.toml](/Users/jem/dojo/nufmt/.helix/languages.toml:1) working with `nufmt` on stdin/stdout.
+- Decide whether to add a `--check` mode for CI and editor-adjacent workflows.
+- Add a small documented troubleshooting section for PATH issues if Helix cannot find `nufmt`.
 
 ### Zed extension
 
