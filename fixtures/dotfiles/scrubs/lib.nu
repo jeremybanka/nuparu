@@ -25,8 +25,7 @@ export def load-settings [] {
       let entry = ($parsed | first)
       let raw_value = ($entry.value | str trim)
       let value = if (
-        ($raw_value | str length) >= 2
-        and (
+        ($raw_value | str length) >= 2 and (
           (($raw_value | str starts-with '"') and ($raw_value | str ends-with '"'))
           or (($raw_value | str starts-with "'") and ($raw_value | str ends-with "'"))
         )
