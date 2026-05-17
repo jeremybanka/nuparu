@@ -19,19 +19,19 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("nufmt.formatDocument", async () => {
+    vscode.commands.registerCommand("nuparu.formatDocument", async () => {
       const editor = vscode.window.activeTextEditor;
 
       if (!editor) {
         void vscode.window.showInformationMessage(
-          "nufmt: No active editor to format."
+          "nuparu: No active editor to format."
         );
         return;
       }
 
       if (editor.document.languageId !== "nushell") {
         void vscode.window.showInformationMessage(
-          "nufmt: The active editor is not a Nushell file."
+          "nuparu: The active editor is not a Nushell file."
         );
         return;
       }
@@ -46,12 +46,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
         if (!applied) {
           void vscode.window.showWarningMessage(
-            "nufmt: VS Code could not apply the formatting edits."
+            "nuparu: VS Code could not apply the formatting edits."
           );
         }
       } catch (error) {
         void vscode.window.showErrorMessage(
-          error instanceof Error ? `nufmt: ${error.message}` : "nufmt failed."
+          error instanceof Error ? `nuparu: ${error.message}` : "nuparu failed."
         );
       }
     })
@@ -61,7 +61,7 @@ export function activate(context: vscode.ExtensionContext): void {
 async function runFormatter(
   document: vscode.TextDocument
 ): Promise<vscode.TextEdit[]> {
-  const config = vscode.workspace.getConfiguration("nufmt", document.uri);
+  const config = vscode.workspace.getConfiguration("nuparu", document.uri);
   const command = resolveFormatterPath(document, config.get<string>("path", ""));
   const extraArgs = config.get<string[]>("extraArgs", []);
   const cwd = workspaceFolderPath(document.uri);
@@ -88,7 +88,7 @@ async function runFormatter(
 
     child.on("error", (error) => {
       reject(
-        new Error(`Failed to start nufmt (${command}). ${error.message}`)
+        new Error(`Failed to start nuparu (${command}). ${error.message}`)
       );
     });
 
@@ -96,7 +96,7 @@ async function runFormatter(
       if (code === 0) {
         resolve(stdout);
       } else {
-        reject(new Error(stderr.trim() || `nufmt exited with status ${code}.`));
+        reject(new Error(stderr.trim() || `nuparu exited with status ${code}.`));
       }
     });
 
@@ -131,16 +131,16 @@ function resolveFormatterPath(
     candidates.add(resolveConfiguredPath(document, trimmedPath));
   }
 
-  for (const candidate of pathCandidatesFromEnv("nufmt")) {
+  for (const candidate of pathCandidatesFromEnv("nuparu")) {
     candidates.add(candidate);
   }
 
-  candidates.add(path.join(os.homedir(), ".cargo", "bin", "nufmt"));
-  candidates.add(path.join(os.homedir(), ".local", "bin", "nufmt"));
+  candidates.add(path.join(os.homedir(), ".cargo", "bin", "nuparu"));
+  candidates.add(path.join(os.homedir(), ".local", "bin", "nuparu"));
 
   for (const folder of vscode.workspace.workspaceFolders ?? []) {
-    candidates.add(path.join(folder.uri.fsPath, "target", "debug", "nufmt"));
-    candidates.add(path.join(folder.uri.fsPath, "target", "release", "nufmt"));
+    candidates.add(path.join(folder.uri.fsPath, "target", "debug", "nuparu"));
+    candidates.add(path.join(folder.uri.fsPath, "target", "release", "nuparu"));
   }
 
   for (const candidate of candidates) {
@@ -151,8 +151,8 @@ function resolveFormatterPath(
 
   throw new Error(
     [
-      "Could not find the nufmt executable.",
-      "Set `nufmt.path` in settings or install `nufmt` into a common location such as `~/.cargo/bin/nufmt`.",
+      "Could not find the nuparu executable.",
+      "Set `nuparu.path` in settings or install `nuparu` into a common location such as `~/.cargo/bin/nuparu`.",
       "Searched:",
       ...Array.from(candidates).map((candidate) => `- ${candidate}`),
     ].join("\n")

@@ -15,7 +15,7 @@ use dprint_core::plugins::{
     AsyncPluginHandler, FileMatchingInfo, FormatRequest, FormatResult, HostFormatRequest,
     PluginInfo, PluginResolveConfigurationResult,
 };
-use nufmt::{Configuration, format_text};
+use nuparu::{Configuration, format_text};
 
 struct NuPluginHandler;
 

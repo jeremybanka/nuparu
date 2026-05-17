@@ -1,7 +1,7 @@
 {
-  "name": "nufmt-vscode",
-  "displayName": "nufmt",
-  "description": "Format Nushell files with nufmt.",
+  "name": "nuparu-vscode",
+  "displayName": "nuparu",
+  "description": "Format Nushell files with nuparu.",
   "version": "0.0.1",
   "publisher": "jeremybanka",
   "author": "jeremybanka",
@@ -17,7 +17,7 @@
     "nushell",
     "nu",
     "formatter",
-    "nufmt"
+    "nuparu"
   ],
   "main": "./dist/extension.js",
   "files": [
@@ -27,7 +27,7 @@
   ],
   "activationEvents": [
     "onLanguage:nushell",
-    "onCommand:nufmt.formatDocument"
+    "onCommand:nuparu.formatDocument"
   ],
   "contributes": {
     "languages": [
@@ -44,26 +44,26 @@
     ],
     "commands": [
       {
-        "command": "nufmt.formatDocument",
+        "command": "nuparu.formatDocument",
         "title": "Format Current Nushell File",
-        "category": "nufmt"
+        "category": "nuparu"
       }
     ],
     "configuration": {
-      "title": "nufmt",
+      "title": "nuparu",
       "properties": {
-        "nufmt.path": {
+        "nuparu.path": {
           "type": "string",
           "default": "",
-          "description": "Path to the nufmt executable. Leave empty to auto-discover common locations."
+          "description": "Path to the nuparu executable. Leave empty to auto-discover common locations."
         },
-        "nufmt.extraArgs": {
+        "nuparu.extraArgs": {
           "type": "array",
           "default": [],
           "items": {
             "type": "string"
           },
-          "description": "Additional arguments passed to nufmt."
+          "description": "Additional arguments passed to nuparu."
         }
       }
     }

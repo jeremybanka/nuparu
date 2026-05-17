@@ -1,6 +1,6 @@
 # Rejoining Strategy
 
-This note describes where `nufmt` should prefer to rejoin lines when the input
+This note describes where `nuparu` should prefer to rejoin lines when the input
 contains unnecessary breaks, and what to do when rejoining would exceed the
 target line width.
 

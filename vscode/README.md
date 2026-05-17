@@ -1,10 +1,10 @@
-# nufmt VS Code extension
+# nuparu VS Code extension
 
-This extension formats `.nu` files by running `nufmt` over stdin and replacing
+This extension formats `.nu` files by running `nuparu` over stdin and replacing
 the whole document with the formatted output.
 
 You can use it either through the normal editor formatting flow or through the
-Command Palette command `nufmt: Format Current Nushell File`.
+Command Palette command `nuparu: Format Current Nushell File`.
 
 ## Development
 
@@ -26,11 +26,11 @@ pnpm package
 
 ## Settings
 
-- `nufmt.path`: path to the `nufmt` executable
-- `nufmt.extraArgs`: extra command-line arguments to pass to `nufmt`
+- `nuparu.path`: path to the `nuparu` executable
+- `nuparu.extraArgs`: extra command-line arguments to pass to `nuparu`
 
 ## Current scope
 
 - whole-document formatting only
 - no range formatting yet
-- expects `nufmt` to already be installed or built locally
+- expects `nuparu` to already be installed or built locally

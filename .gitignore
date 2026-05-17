@@ -2,3 +2,4 @@
 /vscode/dist/
 /vscode/node_modules/
 /vscode/*.vsix
+/.pnpm-store/

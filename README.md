@@ -1,6 +1,6 @@
-# nufmt
+# nuparu
 
-`nufmt` is a Nushell formatter written in Rust.
+`nuparu` is a Nushell formatter written in Rust.
 
 The project now formats from Nushell's official lexer/parser surface instead of
 doing purely line-oriented text rewriting. The current formatter is still
@@ -15,7 +15,7 @@ than the first prototype.
 - preserves multiline string regions verbatim to avoid mangling embedded shell
   or config text
 - trims blank lines at the start and end of blocks
-- exposes a CLI binary named `nufmt`
+- exposes a CLI binary named `nuparu`
 - includes a `dprint`-compatible process-plugin-shaped entrypoint as a future
   integration path
 
@@ -68,12 +68,12 @@ cargo install --path . --force
 Then format through the installed executable:
 
 ```bash
-cat script.nu | ~/.cargo/bin/nufmt
+cat script.nu | ~/.cargo/bin/nuparu
 ```
 
 ## Parser strategy
 
-`nufmt` intentionally builds on Nushell's own crates:
+`nuparu` intentionally builds on Nushell's own crates:
 
 - `nu-parser`
 - `nu-protocol`
@@ -89,8 +89,8 @@ There is already a VS Code-compatible extension under
 
 - format the current Nushell document
 - participate in normal editor formatting
-- discover `nufmt` automatically from common install locations such as
-  `~/.cargo/bin/nufmt`
+- discover `nuparu` automatically from common install locations such as
+  `~/.cargo/bin/nuparu`
 
 Planned editor follow-up work is tracked in
 [docs/TODO.md](/Users/jem/dojo/nufmt/docs/TODO.md:1), including:
@@ -106,11 +106,11 @@ This repo now includes a project-local Helix override in
 It configures the built-in `nu` language to:
 
 - use `nu-lsp` as the language server
-- use `nufmt` as the formatter
+- use `nuparu` as the formatter
 - enable `auto-format`
 - use a `text-width` of `80`
 
-If `nufmt` is installed on your `PATH`, Helix should pick it up automatically
+If `nuparu` is installed on your `PATH`, Helix should pick it up automatically
 for this workspace. You can verify that with:
 
 ```bash
@@ -120,7 +120,7 @@ hx --health nu
 In this repo, that should report both:
 
 - `nu-lsp` configured
-- `nufmt` configured as the formatter
+- `nuparu` configured as the formatter
 
 ## Documentation
 

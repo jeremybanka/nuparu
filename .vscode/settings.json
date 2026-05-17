@@ -1,6 +1,6 @@
 {
   "[nushell]": {
-    "editor.defaultFormatter": "jeremybanka.nufmt-vscode",
+    "editor.defaultFormatter": "jeremybanka.nuparu-vscode",
     "editor.formatOnSave": true
   },
   "[rust]": {
