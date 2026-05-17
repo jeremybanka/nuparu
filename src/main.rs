@@ -51,6 +51,12 @@ impl AsyncPluginHandler for NuPluginHandler {
             &mut diagnostics,
         );
         let max_blank_lines = get_value(&mut config, "maxBlankLines", 1u8, &mut diagnostics);
+        let line_width = get_value(
+            &mut config,
+            "lineWidth",
+            global_config.line_width.unwrap_or(80) as u16,
+            &mut diagnostics,
+        );
         diagnostics.extend(get_unknown_property_diagnostics(config));
 
         PluginResolveConfigurationResult {
@@ -61,6 +67,7 @@ impl AsyncPluginHandler for NuPluginHandler {
             config: Configuration {
                 indent_width,
                 max_blank_lines,
+                line_width,
             },
             diagnostics,
         }

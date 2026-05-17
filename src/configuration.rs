@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct Configuration {
     pub indent_width: u8,
     pub max_blank_lines: u8,
+    pub line_width: u16,
 }
 
 impl Default for Configuration {
@@ -12,6 +13,7 @@ impl Default for Configuration {
         Self {
             indent_width: 2,
             max_blank_lines: 1,
+            line_width: 80,
         }
     }
 }
