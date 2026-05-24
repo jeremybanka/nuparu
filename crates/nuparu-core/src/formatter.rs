@@ -14,6 +14,8 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
     let lines = source_lines(&normalized);
     let multiline_string_lines = multiline_string_lines(&lines);
     let preserved_multiline_list_lines = preserved_multiline_list_lines(&lines);
+    let preserved_multiline_group_expression_lines =
+        preserved_multiline_group_expression_lines(&lines);
     let mut result = String::new();
     let mut indent_level = 0usize;
     let mut blank_run = 0u8;
@@ -59,6 +61,7 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
         let join_with_previous = if multiline_string_lines[index]
             || (index > 0 && multiline_string_lines[index - 1])
             || preserved_multiline_list_lines[index]
+            || preserved_multiline_group_expression_lines[index]
         {
             None
         } else {
@@ -81,12 +84,16 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
                 result.push_str(separator);
             }
         } else if !multiline_string_lines[index] {
-            let continuation_indent = continuation_indent_level(&lines, index, content);
-            result.push_str(
-                &" ".repeat(
-                    (effective_indent + continuation_indent) * config.indent_width as usize,
-                ),
-            );
+            if preserved_multiline_group_expression_lines[index] {
+                result.push_str(&" ".repeat(leading_indent(lines[index].text)));
+            } else {
+                let continuation_indent = continuation_indent_level(&lines, index, content);
+                result.push_str(
+                    &" ".repeat(
+                        (effective_indent + continuation_indent) * config.indent_width as usize,
+                    ),
+                );
+            }
         }
 
         if multiline_string_lines[index] {
@@ -297,6 +304,139 @@ fn preserved_multiline_list_lines(lines: &[SourceLine<'_>]) -> Vec<bool> {
     }
 
     preserve
+}
+
+fn preserved_multiline_group_expression_lines(lines: &[SourceLine<'_>]) -> Vec<bool> {
+    #[derive(Clone, Copy)]
+    struct OpenGroup {
+        start_line: usize,
+    }
+
+    let mut preserve = vec![false; lines.len()];
+    let mut group_stack: Vec<OpenGroup> = Vec::new();
+    let mut nesting_stack: Vec<char> = Vec::new();
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    let mut escaped = false;
+
+    for (line_index, line) in lines.iter().enumerate() {
+        let mut chars = line.text.chars().peekable();
+
+        while let Some(ch) = chars.next() {
+            if escaped {
+                escaped = false;
+                continue;
+            }
+
+            if in_single_quote {
+                if ch == '\\' {
+                    escaped = true;
+                } else if ch == '\'' {
+                    in_single_quote = false;
+                }
+                continue;
+            }
+
+            if in_double_quote {
+                if ch == '\\' {
+                    escaped = true;
+                } else if ch == '"' {
+                    in_double_quote = false;
+                }
+                continue;
+            }
+
+            match ch {
+                '#' => break,
+                '\'' => in_single_quote = true,
+                '"' => in_double_quote = true,
+                '(' => {
+                    nesting_stack.push('(');
+                    group_stack.push(OpenGroup {
+                        start_line: line_index,
+                    });
+                }
+                '[' | '{' => nesting_stack.push(ch),
+                ')' => {
+                    if matches!(nesting_stack.last(), Some('(')) {
+                        nesting_stack.pop();
+                    }
+
+                    if let Some(open_group) = group_stack.pop() {
+                        if open_group.start_line < line_index
+                            && should_preserve_multiline_group_expression(
+                                lines,
+                                open_group.start_line,
+                                line_index,
+                            )
+                        {
+                            for preserved_line in preserve
+                                .iter_mut()
+                                .take(line_index)
+                                .skip(open_group.start_line + 1)
+                            {
+                                *preserved_line = true;
+                            }
+                        }
+                    }
+                }
+                ']' => {
+                    if matches!(nesting_stack.last(), Some('[')) {
+                        nesting_stack.pop();
+                    }
+                }
+                '}' => {
+                    if matches!(nesting_stack.last(), Some('{')) {
+                        nesting_stack.pop();
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    preserve
+}
+
+fn should_preserve_multiline_group_expression(
+    lines: &[SourceLine<'_>],
+    start_line: usize,
+    end_line: usize,
+) -> bool {
+    let opener = lines[start_line].text.trim();
+
+    if !(opener == "(" || opener.ends_with("= (") || opener.ends_with("return (")) {
+        return false;
+    }
+
+    count_significant_group_expression_lines(lines, start_line, end_line) >= 2
+}
+
+fn count_significant_group_expression_lines(
+    lines: &[SourceLine<'_>],
+    start_line: usize,
+    end_line: usize,
+) -> usize {
+    let mut count = 0usize;
+
+    for line in &lines[start_line + 1..end_line] {
+        let content = line.text.trim();
+        if content.is_empty() {
+            continue;
+        }
+
+        let structural_only = content
+            .chars()
+            .all(|ch| ch.is_ascii_whitespace() || matches!(ch, '(' | ')' | '[' | ']' | '{' | '}'));
+
+        if structural_only {
+            continue;
+        }
+
+        count += 1;
+    }
+
+    count
 }
 
 fn count_significant_list_item_lines(
@@ -552,12 +692,16 @@ fn join_separator(
         return Some("");
     }
 
-    if opens_inline_closure(previous_source) && should_join_closure_body_line(lines, index, content)
+    if opens_inline_closure(previous_source)
+        && !is_catch_clause_line(previous_source)
+        && should_join_closure_body_line(lines, index, content)
     {
         return Some(" ");
     }
 
-    if opens_inline_closure(previous_output) && should_join_closure_body_line(lines, index, content)
+    if opens_inline_closure(previous_output)
+        && !is_catch_clause_line(previous_output)
+        && should_join_closure_body_line(lines, index, content)
     {
         return Some(" ");
     }
@@ -726,6 +870,11 @@ fn opens_inline_closure(content: &str) -> bool {
     last_unmatched_open_brace(trimmed)
         .map(|open_brace| trimmed[open_brace + 1..].trim_start())
         .is_some_and(is_closure_signature)
+}
+
+fn is_catch_clause_line(content: &str) -> bool {
+    let trimmed = content.trim_start();
+    trimmed.starts_with("catch ") || trimmed.contains(" catch ")
 }
 
 fn last_unmatched_open_brace(content: &str) -> Option<usize> {
@@ -1239,6 +1388,41 @@ mod tests {
     #[test]
     fn keeps_multistatement_tag_selection_closure_multiline() {
         let input = "$tags | each { |tag|\n  let parsed = (parse-version $tag)\n  if $parsed == null {\n    null\n  } else if $parsed.prerelease != null {\n    null\n  } else {\n    $parsed.major\n  }\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn keeps_return_grouped_multiline_expression_opener_on_its_own_line() {
+        let input = "if $target_tag == null {\n  return (\n    $groups\n    | each { |group|\n        {\n          dep_name: $group.dep_name\n          current_version: $group.current_version\n          target_version: $group.current_version\n          has_update: false\n        }\n      }\n  )\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn keeps_plain_grouped_multiline_expression_opener_on_its_own_line() {
+        let input = "def build-template [] {\n  (\n    open --raw ($scrubs_dir | path join \"seed.yaml\")\n    | str replace \"REPLACE_WITH_SEED_ISO\" $iso_location\n    | str replace \"REPLACE_WITH_SEED_DIR\" $seed_dir\n  ) | save --force $template_file\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn keeps_simple_catch_clause_multiline_in_fixture_shape() {
+        let input = "def configure-editor-settings [] {\n  try {\n    print \"configured\"\n  } catch {|err|\n    print --stderr $err.msg\n  }\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn keeps_multiline_command_call_head_fully_broken_in_fixture_shape() {
+        let input = "let highest_version_dir = (\n  find-highest-version-dir\n    $illustrator_prefs_dir\n    '^Adobe Illustrator (?P<version>\\d+) Settings$'\n    \"No Adobe Illustrator settings directories found.\"\n)\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn keeps_multiline_command_call_head_fully_broken_for_single_line_argument_shapes() {
+        let input = "let highest_version_dir = (\n  find-highest-version-dir\n    $indesign_prefs_dir\n    '^Version (?P<version>\\d+)\\.0$'\n    \"No Adobe InDesign settings directories found.\"\n)\n";
         let output = format_text(input, &Configuration::default());
         assert_eq!(output, input);
     }
