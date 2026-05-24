@@ -1,100 +1,100 @@
 set shell := ["zsh", "-cu"]
 
 default:
-  @just --list
+    @just --list
 
 # USE FROM SOURCE
 i:
-  just install
+    just install
 install:
-  just install-vscode
+    just install-vscode
 install-vscode:
-  pnpm --filter nuparu-vscode install:codium
+    pnpm --filter nuparu-vscode install:codium
 install-cargo:
-  cargo install --path ./packages/cli
+    cargo install --path ./packages/cli
 r:
     just run
 run:
-  cargo run -p nuparu-cli --bin nuparu
+    cargo run -p nuparu-cli --bin nuparu
 
 # TEST
 t:
-  just test
+    just test
 test:
-  just test-cargo
-  just test-ts
+    just test-cargo
+    just test-ts
 test-cargo:
-  cargo test --workspace --all-features
+    cargo test --workspace --all-features
 test-ts:
-  pnpm exec vp run -r test
+    pnpm exec vp run -r test
 
 # STATIC ANALYSIS
 f:
-  just fmt
+    just fmt
 fmt:
-  just fmt-vp
+    just fmt-vp
 fmt-cargo:
-  cargo fmt --all
+    cargo fmt --all
 fmt-vp:
-  pnpm exec vp fmt
+    pnpm exec vp fmt
 c:
-  just check
+    just check
 check:
-  just check-cargo
-  just check-clippy
-  just check-vp
+    just check-cargo
+    just check-clippy
+    just check-vp
 check-vp:
-  pnpm exec vp check
+    pnpm exec vp check
 check-cargo:
-  cargo check --workspace
+    cargo check --workspace
 check-clippy:
-  cargo clippy --workspace --all-targets --all-features -- -D warnings
+    cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 # BUILD SYSTEM
 b:
-  just build
+    just build
 build:
-  just build-cargo
-  just build-vp
+    just build-cargo
+    just build-vp
 build-cargo:
-  cargo build --workspace
+    cargo build --workspace
 build-ts:
-  just build-vp
-  just build-vscode
+    just build-vp
+    just build-vscode
 build-vp:
-  pnpm exec vp run -r build
+    pnpm exec vp run -r build
 build-vscode:
-  pnpm --filter nuparu-vscode package
+    pnpm --filter nuparu-vscode package
 
 # RELEASE SYSTEM
 n:
-  just notes
+    just notes
 notes:
-  pnpm exec changeset
+    pnpm exec changeset
 
 # BUMP THE VERSION
 version:
-  just version-ts
-  just version-crates
+    just version-ts
+    just version-crates
 version-ts:
-  pnpm exec changeset version
+    pnpm exec changeset version
 version-crates:
-  node ./scripts/version-crates.ts
+    node ./scripts/version-crates.ts
 
 # SEND TO PUBLISHERS
 publish:
-  just publish-crates
-  just publish-npm
-  just publish-vscode
-  just publish-dprint
+    just publish-crates
+    just publish-npm
+    just publish-vscode
+    just publish-dprint
 publish-crates:
-  cargo publish -p nuparu-core
-  cargo publish -p nuparu-cli
+    cargo publish -p nuparu-core
+    cargo publish -p nuparu-cli
 publish-npm:
-  just packages-build
-  pnpm publish -r --filter "./packages/*"
+    just packages-build
+    pnpm publish -r --filter "./packages/*"
 publish-vscode:
-  just vscode-build
-  pnpm --filter nuparu-vscode exec vsce publish
+    just vscode-build
+    pnpm --filter nuparu-vscode exec vsce publish
 publish-dprint:
-  echo "nuparu-dprint publish is not wired yet; skipping."
+    echo "nuparu-dprint publish is not wired yet; skipping."
