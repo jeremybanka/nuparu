@@ -25,8 +25,10 @@ This repo uses:
 
 - `mise` for toolchain management
 - `just` for common project tasks
+- `pnpm` workspaces with shared catalogs for the TypeScript monorepo
+- `vite-plus` to orchestrate TypeScript formatting, linting, builds, and tests
 - Rust for the formatter binary
-- a TypeScript + `tsdown` VS Code extension in
+- a TypeScript VS Code extension in
   [`vscode/nuparu-vscode/`](/Users/jem/dojo/nuparu/vscode/nuparu-vscode)
 
 Install the toolchain:
@@ -42,6 +44,15 @@ just check
 just test
 just fmt
 just clippy
+```
+
+TypeScript-specific workspace tasks:
+
+```bash
+just ts-check
+just ts-test
+just ts-build
+just ts-fmt
 ```
 
 VS Code extension tasks:

@@ -3,13 +3,24 @@
 import fs from "node:fs";
 
 import { formatText } from "@nuparu/wasm";
+import { runCli } from "./run-cli.js";
 
-const args = process.argv.slice(2);
+const exitCode = runCli(
+  process.argv.slice(2),
+  {
+    readStdin() {
+      return fs.readFileSync(0, "utf8");
+    },
+    writeStdout(text) {
+      process.stdout.write(text);
+    },
+    writeStderr(text) {
+      process.stderr.write(text);
+    },
+  },
+  formatText,
+);
 
-if (args.length > 0) {
-  console.error("@nuparu/cli does not support command-line arguments yet.");
-  process.exit(1);
+if (exitCode !== 0) {
+  process.exit(exitCode);
 }
-
-const input = fs.readFileSync(0, "utf8");
-process.stdout.write(formatText(input));

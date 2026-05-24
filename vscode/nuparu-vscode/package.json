@@ -1,34 +1,42 @@
 {
   "name": "nuparu-vscode",
   "displayName": "nuparu",
-  "description": "Format Nushell files with nuparu.",
   "version": "0.1.0",
-  "publisher": "jeremybanka",
-  "author": "jeremybanka",
-  "license": "MIT",
-  "packageManager": "pnpm@11.1.2",
-  "engines": {
-    "vscode": "^1.100.0"
-  },
+  "description": "Format Nushell files with nuparu.",
   "categories": [
     "Formatters"
   ],
   "keywords": [
-    "nushell",
-    "nu",
     "formatter",
-    "nuparu"
+    "nu",
+    "nuparu",
+    "nushell"
   ],
-  "main": "./dist/extension.js",
+  "license": "MIT",
+  "author": "jeremybanka",
+  "publisher": "jeremybanka",
   "files": [
     "dist",
     "README.md",
     "package.json"
   ],
-  "activationEvents": [
-    "onLanguage:nushell",
-    "onCommand:nuparu.formatDocument"
-  ],
+  "main": "./dist/extension.cjs",
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "check": "vp check",
+    "test": "vp test",
+    "package": "pnpm build && vsce package --allow-missing-repository",
+    "install:codium": "pnpm package && /Applications/VSCodium.app/Contents/Resources/app/bin/codium --install-extension *.vsix --force"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/vscode": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "@vscode/vsce": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
   "contributes": {
     "languages": [
       {
@@ -68,18 +76,12 @@
       }
     }
   },
-  "scripts": {
-    "build": "tsdown",
-    "check": "tsc --noEmit",
-    "lint": "tsc --noEmit",
-    "package": "pnpm build && vsce package --allow-missing-repository",
-    "install:codium": "pnpm package && /Applications/VSCodium.app/Contents/Resources/app/bin/codium --install-extension *.vsix --force"
+  "activationEvents": [
+    "onCommand:nuparu.formatDocument",
+    "onLanguage:nushell"
+  ],
+  "engines": {
+    "vscode": "^1.100.0"
   },
-  "devDependencies": {
-    "@types/node": "^24.10.1",
-    "@types/vscode": "^1.100.0",
-    "@vscode/vsce": "^3.6.2",
-    "tsdown": "^0.14.2",
-    "typescript": "^5.9.3"
-  }
+  "packageManager": "pnpm@11.1.2"
 }

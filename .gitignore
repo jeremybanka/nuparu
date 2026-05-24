@@ -7,4 +7,6 @@
 /vscode/nuparu-vscode/node_modules/
 /vscode/nuparu-vscode/*.vsix
 /packages/*/dist/
+/packages/*/node_modules/
 /.pnpm-store/
+/.turbo/

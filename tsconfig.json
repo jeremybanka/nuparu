@@ -1,13 +1,23 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["ESNext"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "noImplicitAny": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "resolveJsonModule": true,
+    "target": "ESNext",
     "strict": true,
-    "types": ["node"],
-    "erasableSyntaxOnly": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "types": ["node"],
+    "verbatimModuleSyntax": true
   },
   "include": ["scripts/**/*.ts"]
 }

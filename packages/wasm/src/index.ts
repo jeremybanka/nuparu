@@ -19,7 +19,7 @@ export function formatText(fileText: string, options: FormatOptions = {}): strin
     fileText,
     options.indentWidth ?? 2,
     options.maxBlankLines ?? 1,
-    options.lineWidth ?? 80
+    options.lineWidth ?? 80,
   );
 }
 

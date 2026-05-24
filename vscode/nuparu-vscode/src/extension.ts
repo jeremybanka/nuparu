@@ -1,8 +1,8 @@
 import cp from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import * as vscode from "vscode";
+
+import { collectFormatterCandidates, resolveConfiguredPath } from "./formatter-paths.js";
 
 export function activate(context: vscode.ExtensionContext): void {
   const provider: vscode.DocumentFormattingEditProvider = {
@@ -12,10 +12,7 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   context.subscriptions.push(
-    vscode.languages.registerDocumentFormattingEditProvider(
-      [{ language: "nushell" }],
-      provider
-    )
+    vscode.languages.registerDocumentFormattingEditProvider([{ language: "nushell" }], provider),
   );
 
   context.subscriptions.push(
@@ -23,15 +20,13 @@ export function activate(context: vscode.ExtensionContext): void {
       const editor = vscode.window.activeTextEditor;
 
       if (!editor) {
-        void vscode.window.showInformationMessage(
-          "nuparu: No active editor to format."
-        );
+        void vscode.window.showInformationMessage("nuparu: No active editor to format.");
         return;
       }
 
       if (editor.document.languageId !== "nushell") {
         void vscode.window.showInformationMessage(
-          "nuparu: The active editor is not a Nushell file."
+          "nuparu: The active editor is not a Nushell file.",
         );
         return;
       }
@@ -46,21 +41,19 @@ export function activate(context: vscode.ExtensionContext): void {
 
         if (!applied) {
           void vscode.window.showWarningMessage(
-            "nuparu: VS Code could not apply the formatting edits."
+            "nuparu: VS Code could not apply the formatting edits.",
           );
         }
       } catch (error) {
         void vscode.window.showErrorMessage(
-          error instanceof Error ? `nuparu: ${error.message}` : "nuparu failed."
+          error instanceof Error ? `nuparu: ${error.message}` : "nuparu failed.",
         );
       }
-    })
+    }),
   );
 }
 
-async function runFormatter(
-  document: vscode.TextDocument
-): Promise<vscode.TextEdit[]> {
+async function runFormatter(document: vscode.TextDocument): Promise<vscode.TextEdit[]> {
   const config = vscode.workspace.getConfiguration("nuparu", document.uri);
   const command = resolveFormatterPath(document, config.get<string>("path", ""));
   const extraArgs = config.get<string[]>("extraArgs", []);
@@ -87,9 +80,7 @@ async function runFormatter(
     });
 
     child.on("error", (error) => {
-      reject(
-        new Error(`Failed to start nuparu (${command}). ${error.message}`)
-      );
+      reject(new Error(`Failed to start nuparu (${command}). ${error.message}`));
     });
 
     child.on("close", (code) => {
@@ -120,28 +111,16 @@ function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
 
 export function deactivate(): void {}
 
-function resolveFormatterPath(
-  document: vscode.TextDocument,
-  configuredPath: string
-): string {
-  const trimmedPath = configuredPath.trim();
-  const candidates = new Set<string>();
-
-  if (trimmedPath.length > 0) {
-    candidates.add(resolveConfiguredPath(document, trimmedPath));
-  }
-
-  for (const candidate of pathCandidatesFromEnv("nuparu")) {
-    candidates.add(candidate);
-  }
-
-  candidates.add(path.join(os.homedir(), ".cargo", "bin", "nuparu"));
-  candidates.add(path.join(os.homedir(), ".local", "bin", "nuparu"));
-
-  for (const folder of vscode.workspace.workspaceFolders ?? []) {
-    candidates.add(path.join(folder.uri.fsPath, "target", "debug", "nuparu"));
-    candidates.add(path.join(folder.uri.fsPath, "target", "release", "nuparu"));
-  }
+function resolveFormatterPath(document: vscode.TextDocument, configuredPath: string): string {
+  const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+  const candidates = collectFormatterCandidates({
+    commandName: "nuparu",
+    configuredPath:
+      configuredPath.trim().length > 0
+        ? resolveConfiguredPath(configuredPath, folder?.uri.fsPath)
+        : "",
+    workspaceFolderPaths: vscode.workspace.workspaceFolders?.map((entry) => entry.uri.fsPath) ?? [],
+  });
 
   for (const candidate of candidates) {
     if (isExecutable(candidate)) {
@@ -155,28 +134,8 @@ function resolveFormatterPath(
       "Set `nuparu.path` in settings or install `nuparu` into a common location such as `~/.cargo/bin/nuparu`.",
       "Searched:",
       ...Array.from(candidates).map((candidate) => `- ${candidate}`),
-    ].join("\n")
+    ].join("\n"),
   );
-}
-
-function resolveConfiguredPath(
-  document: vscode.TextDocument,
-  configuredPath: string
-): string {
-  if (path.isAbsolute(configuredPath)) {
-    return configuredPath;
-  }
-
-  const folder = vscode.workspace.getWorkspaceFolder(document.uri);
-  return folder ? path.join(folder.uri.fsPath, configuredPath) : configuredPath;
-}
-
-function pathCandidatesFromEnv(commandName: string): string[] {
-  const pathValue = process.env.PATH ?? "";
-  return pathValue
-    .split(path.delimiter)
-    .filter(Boolean)
-    .map((entry) => path.join(entry, commandName));
 }
 
 function isExecutable(filePath: string): boolean {

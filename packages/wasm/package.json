@@ -1,17 +1,14 @@
 {
   "name": "@nuparu/wasm",
   "version": "0.1.0",
-  "type": "module",
   "description": "WASM-powered Node API for the nuparu formatter.",
   "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
   "files": [
     "dist",
     "README.md",
     "package.json"
   ],
+  "type": "module",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
@@ -19,8 +16,19 @@
       "import": "./dist/index.js"
     }
   },
+  "publishConfig": {
+    "access": "public"
+     
+  },
   "scripts": {
-    "build": "cargo build -p nuparu-wasm --target wasm32-unknown-unknown --release && wasm-bindgen ../../target/wasm32-unknown-unknown/release/nuparu_wasm.wasm --out-dir dist --target web --no-typescript && tsc -p tsconfig.build.json",
-    "check": "tsc -p tsconfig.json"
+    "build": "vp run build:task",
+    "check": "vp check",
+    "test": "node --eval \"\""
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }
