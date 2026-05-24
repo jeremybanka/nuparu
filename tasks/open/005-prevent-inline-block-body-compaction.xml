@@ -1,0 +1,28 @@
+<task>
+  <id>005</id>
+  <status>open</status>
+  <priority>P0</priority>
+  <title>Prevent inline compaction of plain block bodies after opening braces</title>
+  <summary>
+    The formatter still pulls the first expression in a normal block body onto
+    the same line as the opening brace in some cases.
+  </summary>
+  <problem>
+    After the 0001-0004 fixes, one clear content regression remains in
+    fixtures/dotfiles/scrubs/lib.nu where a normal if-branch body becomes
+    `if (...) {$env | get $key`. This is not a closure case and not a record
+    literal case; it is a plain block-body compaction problem.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scrubs/lib.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>tasks/review/0001-0004.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Normal block bodies after `if`, `else if`, `else`, `while`, `for`, `match`, `def`, `export def`, `try`, and `do` do not pull their first body expression onto the opening-brace line unless that style is explicitly chosen and tested.</criterion>
+    <criterion>The exact failing shape from fixtures/dotfiles/scrubs/lib.nu is covered by a regression test.</criterion>
+    <criterion>Legitimate block-opener joins such as `if (...) {` still work.</criterion>
+  </acceptanceCriteria>
+</task>

@@ -1,0 +1,29 @@
+<task>
+  <id>006</id>
+  <status>open</status>
+  <priority>P1</priority>
+  <title>Preserve file mode bits when rewriting formatted files</title>
+  <summary>
+    Running the formatter through the current rewrite path drops executable bits
+    from script fixtures even when file contents do not change meaningfully.
+  </summary>
+  <problem>
+    The fixture review showed fixtures/dotfiles/scripts/update.nu changing mode
+    from 100755 to 100644. This is a tooling side effect, not a formatting
+    judgment, and it can break workflows that rely on executable Nushell
+    scripts.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/update.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>packages/cli/src/cli.ts</path>
+    <path>crates/nuparu-cli/src/main.rs</path>
+    <path>tasks/review/0001-0004.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Formatting and rewriting a file preserves its executable bit and any other relevant mode bits.</criterion>
+    <criterion>A regression test or fixture-based verification demonstrates that a 100755 `.nu` file remains executable after formatting.</criterion>
+    <criterion>The fix applies to the supported formatter invocation paths, not just a one-off local script.</criterion>
+  </acceptanceCriteria>
+</task>

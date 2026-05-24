@@ -1,0 +1,32 @@
+<task>
+  <id>007</id>
+  <status>open</status>
+  <priority>P1</priority>
+  <title>Decide and codify grouped multiline expression opener style</title>
+  <summary>
+    The formatter currently rejoins grouped multiline expressions into shapes
+    like `return ( $groups | each ...` and `( open --raw ...`, and the review
+    found those results awkward but not structurally broken.
+  </summary>
+  <problem>
+    This is a policy question rather than a correctness failure. We need a
+    definitive answer on whether multiline grouped expressions should keep the
+    opener on its own line or share a line with the first stage when the inside
+    is clearly multiline.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/upgrade-workflows.nu</file>
+    <file>fixtures/dotfiles/scrubs/bootstrap.nu</file>
+    <file>fixtures/dotfiles/scrubs/seed.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>docs/rejoining-strategy.md</path>
+    <path>tasks/review/0001-0004.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Choose one formatter policy for clearly multiline grouped expressions introduced by `return (` and plain `(`.</criterion>
+    <criterion>Encode that policy in regression tests using the real fixture shapes from upgrade-workflows.nu, bootstrap.nu, and seed.nu.</criterion>
+    <criterion>Update docs or review notes so the chosen style is explicit instead of remaining a taste-based open question.</criterion>
+  </acceptanceCriteria>
+</task>

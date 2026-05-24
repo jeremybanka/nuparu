@@ -1,0 +1,29 @@
+<task>
+  <id>009</id>
+  <status>open</status>
+  <priority>P2</priority>
+  <title>Decide command-head compaction boundaries for uneven multiline call sites</title>
+  <summary>
+    Some multiline calls now compact only the head and first one or two
+    arguments, producing shapes that are acceptable but still feel uneven.
+  </summary>
+  <problem>
+    The review marked the `find-highest-version-dir ...` call-site compactions
+    in configure-apps.nu as mixed-but-acceptable rather than clearly good or
+    clearly bad. We should decide whether that is the intended house style or a
+    transitional artifact of the current command-head rejoining heuristic.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/configure-apps.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>docs/rejoining-strategy.md</path>
+    <path>tasks/review/0001-0004.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Choose whether partially compacted multiline call sites like the find-highest-version-dir cases are desirable.</criterion>
+    <criterion>Encode the chosen policy with regression tests using the real configure-apps.nu call shapes.</criterion>
+    <criterion>Document the intended behavior so future diffs can be judged against an explicit rule instead of taste.</criterion>
+  </acceptanceCriteria>
+</task>
