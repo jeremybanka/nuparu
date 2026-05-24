@@ -22,6 +22,7 @@
     "README.md",
     "package.json"
   ],
+  "type": "module",
   "main": "./dist/extension.cjs",
   "scripts": {
     "build": "vp pack && pnpm build:vscode",
