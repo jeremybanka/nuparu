@@ -4,8 +4,7 @@ export default defineConfig({
   run: {
     tasks: {
       "build:task": {
-        command:
-          "cargo build -p nuparu-wasm --target wasm32-unknown-unknown --release && wasm-bindgen ../../target/wasm32-unknown-unknown/release/nuparu_wasm.wasm --out-dir dist --target web --no-typescript && tsc -p tsconfig.build.json",
+        command: "pnpm run build",
         input: [
           { auto: true },
           "!dist/**",
