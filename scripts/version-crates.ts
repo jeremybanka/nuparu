@@ -2,58 +2,28 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const publicPackagePaths = [
-  "vscode/nuparu-vscode/package.json",
-  "packages/nuparu/package.json",
-  "packages/nuparu-wasm/package.json",
-  "dprint/nuparu-dprint/package.json",
-].filter((relativePath) => fs.existsSync(path.join(root, relativePath)));
+const versionSourcePath = "vscode/nuparu-vscode/package.json";
 
-if (publicPackagePaths.length === 0) {
-  throw new Error("No public package manifests were found to source the release version.");
+if (!fs.existsSync(path.join(root, versionSourcePath))) {
+  throw new Error(`Missing version source manifest: ${versionSourcePath}`);
 }
 
-const packageVersions = new Map<string, string>();
-for (const relativePath of publicPackagePaths) {
-  const manifest = readJson(relativePath);
-  packageVersions.set(relativePath, manifest.version);
-}
+const { version } = JSON.parse(
+  fs.readFileSync(path.join(root, versionSourcePath), "utf8")
+) as {  version: string; };
 
-const [sharedVersion] = new Set(packageVersions.values());
-if (!sharedVersion) {
-  throw new Error("Could not determine a shared version.");
-}
+const cargoTomlPath = path.join(root, "Cargo.toml");
+const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
+const next = cargoToml
+  .replace(
+    /(\[workspace\.package\][\s\S]*?version = ")([^"]+)(")/,
+    `$1${version}$3`
+  )
+  .replace(
+    /(nuparu-core = \{ path = "crates\/nuparu-core", version = ")([^"]+)(" \})/,
+    `$1${version}$3`
+  );
 
-for (const [relativePath, version] of packageVersions) {
-  if (version !== sharedVersion) {
-    throw new Error(
-      `Public package versions are out of sync. ${relativePath} has ${version}, expected ${sharedVersion}.`
-    );
-  }
-}
+fs.writeFileSync(cargoTomlPath, next);
 
-syncCargoWorkspaceVersion(sharedVersion);
-
-console.log(`Synchronized shared crate version ${sharedVersion}.`);
-
-function readJson(relativePath: string): { version: string } {
-  return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8")) as {
-    version: string;
-  };
-}
-
-function syncCargoWorkspaceVersion(version: string) {
-  const cargoTomlPath = path.join(root, "Cargo.toml");
-  const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
-  const next = cargoToml
-    .replace(
-      /(\[workspace\.package\][\s\S]*?version = ")([^"]+)(")/,
-      `$1${version}$3`
-    )
-    .replace(
-      /(nuparu-core = \{ path = "crates\/nuparu-core", version = ")([^"]+)(" \})/,
-      `$1${version}$3`
-    );
-
-  fs.writeFileSync(cargoTomlPath, next);
-}
+console.log(`Synchronized shared crate version ${version}.`);
