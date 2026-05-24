@@ -43,6 +43,7 @@ test-ts:
 f:
     just fmt
 fmt:
+    just fmt-cargo
     just fmt-vp
 fmt-cargo:
     cargo fmt --all
