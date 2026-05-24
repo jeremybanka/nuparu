@@ -26,7 +26,7 @@
     "dev": "vp pack --watch",
     "check": "vp check",
     "test": "vp test",
-    "package": "pnpm build && vsce package --allow-missing-repository",
+    "package": "pnpm build && node ../../scripts/package-vscode.ts",
     "install:codium": "pnpm package && /Applications/VSCodium.app/Contents/Resources/app/bin/codium --install-extension *.vsix --force"
   },
   "devDependencies": {
