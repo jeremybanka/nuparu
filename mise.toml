@@ -3,7 +3,6 @@ just = "1.51.0"
 node = "26.1.0"
 pnpm = "11.1.2"
 rust = "1.95.0"
-viteplus = "0.1.22"
 
 [env]
 CARGO_TERM_COLOR = "always"
