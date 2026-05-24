@@ -13,6 +13,7 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
 
     let lines = source_lines(&normalized);
     let multiline_string_lines = multiline_string_lines(&lines);
+    let preserved_multiline_list_lines = preserved_multiline_list_lines(&lines);
     let mut result = String::new();
     let mut indent_level = 0usize;
     let mut blank_run = 0u8;
@@ -57,6 +58,7 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
 
         let join_with_previous = if multiline_string_lines[index]
             || (index > 0 && multiline_string_lines[index - 1])
+            || preserved_multiline_list_lines[index]
         {
             None
         } else {
@@ -198,6 +200,131 @@ fn multiline_string_lines(lines: &[SourceLine<'_>]) -> Vec<bool> {
     }
 
     result
+}
+
+fn preserved_multiline_list_lines(lines: &[SourceLine<'_>]) -> Vec<bool> {
+    const MULTILINE_LIST_PRESERVE_THRESHOLD: usize = 6;
+
+    #[derive(Clone, Copy)]
+    struct OpenList {
+        start_line: usize,
+        start_depth: usize,
+    }
+
+    let mut preserve = vec![false; lines.len()];
+    let mut list_stack: Vec<OpenList> = Vec::new();
+    let mut nesting_stack: Vec<char> = Vec::new();
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    let mut escaped = false;
+
+    for (line_index, line) in lines.iter().enumerate() {
+        let mut chars = line.text.chars().peekable();
+
+        while let Some(ch) = chars.next() {
+            if escaped {
+                escaped = false;
+                continue;
+            }
+
+            if in_single_quote {
+                if ch == '\\' {
+                    escaped = true;
+                } else if ch == '\'' {
+                    in_single_quote = false;
+                }
+                continue;
+            }
+
+            if in_double_quote {
+                if ch == '\\' {
+                    escaped = true;
+                } else if ch == '"' {
+                    in_double_quote = false;
+                }
+                continue;
+            }
+
+            match ch {
+                '#' => break,
+                '\'' => in_single_quote = true,
+                '"' => in_double_quote = true,
+                '[' => {
+                    let start_depth = nesting_stack.len();
+                    nesting_stack.push('[');
+                    list_stack.push(OpenList {
+                        start_line: line_index,
+                        start_depth,
+                    });
+                }
+                '{' | '(' => nesting_stack.push(ch),
+                ']' => {
+                    if matches!(nesting_stack.last(), Some('[')) {
+                        nesting_stack.pop();
+                    }
+
+                    if let Some(open_list) = list_stack.pop() {
+                        if open_list.start_line < line_index {
+                            let item_lines = count_significant_list_item_lines(
+                                lines,
+                                open_list.start_line,
+                                line_index,
+                                open_list.start_depth,
+                            );
+                            if item_lines >= MULTILINE_LIST_PRESERVE_THRESHOLD {
+                                for preserved_line in
+                                    preserve.iter_mut().take(line_index).skip(open_list.start_line + 1)
+                                {
+                                    *preserved_line = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                '}' => {
+                    if matches!(nesting_stack.last(), Some('{')) {
+                        nesting_stack.pop();
+                    }
+                }
+                ')' => {
+                    if matches!(nesting_stack.last(), Some('(')) {
+                        nesting_stack.pop();
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    preserve
+}
+
+fn count_significant_list_item_lines(
+    lines: &[SourceLine<'_>],
+    start_line: usize,
+    end_line: usize,
+    _list_depth: usize,
+) -> usize {
+    let mut count = 0usize;
+
+    for line in &lines[start_line + 1..end_line] {
+        let content = line.text.trim();
+        if content.is_empty() {
+            continue;
+        }
+
+        let structural_only = content.chars().all(|ch| {
+            ch.is_ascii_whitespace() || matches!(ch, '[' | ']' | '(' | ')' | '{' | '}' | ',')
+        });
+
+        if structural_only {
+            continue;
+        }
+
+        count += 1;
+    }
+
+    count
 }
 
 fn line_tokens<'a>(
@@ -850,6 +977,27 @@ mod tests {
         let input = "return\n{\n  key: value\n}\n";
         let output = format_text(input, &Configuration::default());
         assert_eq!(output, "return {\n  key: value\n}\n");
+    }
+
+    #[test]
+    fn preserves_dense_multiline_ssh_arg_list_from_fixture_shape() {
+        let input = "def ssh-base-args [] {\n  [\n    \"-o\" \"ControlMaster=no\"\n    \"-o\" \"ControlPath=none\"\n    \"-o\" \"ControlPersist=no\"\n    \"-o\" \"StrictHostKeyChecking=no\"\n    \"-o\" \"UserKnownHostsFile=/dev/null\"\n    \"-o\" \"NoHostAuthenticationForLocalhost=yes\"\n    \"-o\" \"PreferredAuthentications=publickey\"\n    \"-o\" \"Compression=no\"\n    \"-o\" \"BatchMode=yes\"\n    \"-o\" \"IdentitiesOnly=yes\"\n    \"-o\" \"GSSAPIAuthentication=no\"\n    \"-i\" ($env.HOME | path join \".lima\" \"_config\" \"user\")\n    \"-p\" $ssh_port\n    $\"($guest_user)@127.0.0.1\"\n  ]\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn preserves_dense_multiline_filename_list_from_fixture_shape() {
+        let input = "for file_name in [\n  \"carapace-init.nu\"\n  \"config.nu\"\n  \"config.shared.nu\"\n  \"config.darwin.nu\"\n  \"config.linux.nu\"\n  \"env.nu\"\n  \"env.shared.nu\"\n  \"env.darwin.nu\"\n  \"env.linux.nu\"\n  \"kolo.nu\"\n  \"mise.nu\"\n  \"ni-completions.nu\"\n  \"vite-plus.nu\"\n] {\n  print $file_name\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn still_compacts_short_simple_multiline_lists() {
+        let input = "let values = [\n  \"a\"\n  \"b\"\n]\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, "let values = [\n  \"a\" \"b\"\n]\n");
     }
 
     #[test]
