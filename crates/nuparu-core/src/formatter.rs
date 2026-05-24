@@ -366,7 +366,10 @@ fn join_separator(
         return Some(" ");
     }
 
-    if content == "{" && can_join_block_opener(previous_output) {
+    if content == "{"
+        && (can_join_block_opener(previous_output)
+            || (previous_output == ")" && follows_split_parenthesized_block_header(lines, index)))
+    {
         return Some(" ");
     }
 
@@ -453,11 +456,38 @@ fn join_separator(
 
 fn can_join_block_opener(previous: &str) -> bool {
     !previous.ends_with('{')
-        && (previous.ends_with(')')
-            || previous.ends_with(']')
-            || previous.ends_with("else")
-            || previous.ends_with('"')
-            || previous.ends_with('\''))
+        && (previous.starts_with("if ")
+            || previous.starts_with("else if ")
+            || previous == "else"
+            || previous.starts_with("while ")
+            || previous.starts_with("for ")
+            || previous.starts_with("match ")
+            || previous.starts_with("def ")
+            || previous.starts_with("export def ")
+            || previous == "try"
+            || previous == "do"
+            || previous.starts_with("do "))
+}
+
+fn follows_split_parenthesized_block_header(lines: &[SourceLine<'_>], index: usize) -> bool {
+    let mut found_open_paren = false;
+
+    for content in lines[..index].iter().rev().map(|line| line.text.trim()) {
+        if content.is_empty() {
+            continue;
+        }
+
+        if !found_open_paren {
+            if content == "(" {
+                found_open_paren = true;
+            }
+            continue;
+        }
+
+        return matches!(content, "if" | "else if" | "while" | "match");
+    }
+
+    false
 }
 
 fn starts_with_boolean_connector(content: &str) -> bool {
@@ -820,6 +850,34 @@ mod tests {
         let input = "return\n{\n  key: value\n}\n";
         let output = format_text(input, &Configuration::default());
         assert_eq!(output, "return {\n  key: value\n}\n");
+    }
+
+    #[test]
+    fn keeps_record_literal_separate_from_preceding_let_in_fixture_shape() {
+        let input = "items | each { |row|\n  let entry = ($row | first)\n  {\n    name: $row.name\n    version: ($entry.version | into int)\n  }\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn keeps_group_record_literal_separate_from_preceding_let() {
+        let input = "items | each { |group|\n  let first = ($group.occurrences | first)\n  {\n    group_key: $group.group_key\n    action_name: $first.action_name\n    current_version: $first.current_version\n  }\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn keeps_version_group_record_literal_separate_from_preceding_let() {
+        let input = "items | each { |group|\n  let parsed = (parse-version $group.current_version)\n  {\n    dep_name: 'jdx/mise'\n    current_version: $group.current_version\n    sort_major: ($parsed | get -o major | default (-1))\n  }\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn keeps_branch_record_literal_separate_from_preceding_lets() {
+        let input = "items | each { |group|\n  let repository = $group.action_name\n  let available_tags = ($tag_cache | get $repository)\n  let target_tag = (select-latest-tag $available_tags)\n\n  if $target_tag == null {\n    {\n      dep_name: $group.action_name\n      current_version: $group.current_version\n    }\n  } else {\n    let target_ref = (resolve-tag-commit $repository $target_tag)\n    let target_version = (normalize-version $target_tag)\n    {\n      dep_name: $group.action_name\n      target_ref: $target_ref\n      target_version: $target_version\n    }\n  }\n}\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
     }
 
     #[test]
