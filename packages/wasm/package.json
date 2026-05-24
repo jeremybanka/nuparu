@@ -18,12 +18,12 @@
   },
   "publishConfig": {
     "access": "public"
-     
   },
   "scripts": {
-    "build": "vp run build:task",
-    "check": "vp check",
-    "test": "node --eval \"\""
+    "build:rust": "cargo build -p nuparu-wasm --target wasm32-unknown-unknown --release",
+    "build:bindings": "wasm-bindgen ../../target/wasm32-unknown-unknown/release/nuparu_wasm.wasm --out-dir dist --target web --no-typescript",
+    "build:typescript": "tsc -p tsconfig.build.json",
+    "build": "pnpm run build:rust && pnpm run build:bindings && pnpm run build:typescript"
   },
   "devDependencies": {
     "@types/node": "catalog:",
