@@ -548,21 +548,24 @@ fn join_separator(
         return Some(" ");
     }
 
-    if previous_output.ends_with('{') && contains_closure_signature(previous_source) {
+    if previous_output.ends_with('{') && opens_inline_closure(previous_source) {
         return Some("");
     }
 
-    if contains_closure_signature(previous_source) && should_join_closure_body_line(lines, index, content) {
-        return Some(" ");
-    }
-
-    if contains_closure_signature(previous_output)
-        && should_join_closure_body_line(lines, index, content)
+    if opens_inline_closure(previous_source) && should_join_closure_body_line(lines, index, content)
     {
         return Some(" ");
     }
 
-    if content == "}" && contains_closure_signature(previous_output) && !contains_closure_signature(previous_source) {
+    if opens_inline_closure(previous_output) && should_join_closure_body_line(lines, index, content)
+    {
+        return Some(" ");
+    }
+
+    if content == "}"
+        && opens_inline_closure(previous_output)
+        && !opens_inline_closure(previous_source)
+    {
         return Some(" ");
     }
 
@@ -712,6 +715,33 @@ fn should_join_closure_body_line(
 
 fn is_closure_signature(content: &str) -> bool {
     content.starts_with('|') && content[1..].contains('|')
+}
+
+fn opens_inline_closure(content: &str) -> bool {
+    let trimmed = content.trim_start();
+    if is_closure_signature(trimmed) {
+        return true;
+    }
+
+    last_unmatched_open_brace(trimmed)
+        .map(|open_brace| trimmed[open_brace + 1..].trim_start())
+        .is_some_and(is_closure_signature)
+}
+
+fn last_unmatched_open_brace(content: &str) -> Option<usize> {
+    let mut unmatched_open_braces = Vec::new();
+
+    for (index, ch) in content.char_indices() {
+        match ch {
+            '{' => unmatched_open_braces.push(index),
+            '}' => {
+                unmatched_open_braces.pop();
+            }
+            _ => {}
+        }
+    }
+
+    unmatched_open_braces.last().copied()
 }
 
 fn contains_closure_signature(content: &str) -> bool {
@@ -1083,6 +1113,13 @@ mod tests {
     #[test]
     fn keeps_print_and_mutation_as_distinct_statements() {
         let input = "print \"Waiting for SSH access to the guest\"\nmut ready = false\n";
+        let output = format_text(input, &Configuration::default());
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn keeps_real_fixture_if_branch_body_on_its_own_line() {
+        let input = "export def get-setting [\n  settings: record\n  key: string\n  default_value: any = null\n] {\n  if ($env | columns | any {|column| $column == $key }) {\n    $env | get $key\n  } else if ($settings | columns | any {|column| $column == $key }) {\n    $settings | get $key\n  } else {\n    $default_value\n  }\n}\n";
         let output = format_text(input, &Configuration::default());
         assert_eq!(output, input);
     }
