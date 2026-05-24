@@ -6,7 +6,7 @@
 
 - Package `nuparu` as a formatter command that can run on save and on explicit format requests.
 - Register Nushell files (`.nu`) with the formatter contribution so it can be selected as the default formatter.
-- Decide whether the extension should bundle platform binaries, download releases, or delegate to a user-installed `nuparu`.
+- Keep the extension aligned with the user-installed `nuparu` binary model and document the expected install paths.
 - Add range-formatting support later only if the formatter can guarantee safe partial formatting.
 
 ### Helix
@@ -19,5 +19,5 @@
 
 - Evaluate whether Zed should use a lightweight extension wrapper or a language-server-style integration point.
 - Register `nuparu` as the formatter for Nushell buffers and wire it into format-on-save.
-- Decide on binary discovery: bundled, downloaded, or system-installed.
+- Reuse the system-installed `nuparu` discovery model used by the VS Code extension.
 - Add a small integration test matrix for macOS and Linux before publishing.

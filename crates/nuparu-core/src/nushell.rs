@@ -110,11 +110,12 @@ mod tests {
 
     #[test]
     fn nushell_lexer_and_lite_parser_accept_all_fixture_inputs() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures");
+        let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let root = workspace_root.join("fixtures");
 
         for path in fixture_files(&root) {
             let text = fs::read_to_string(&path).unwrap();
-            let name = path.strip_prefix(env!("CARGO_MANIFEST_DIR")).unwrap();
+            let name = path.strip_prefix(&workspace_root).unwrap();
             let parsed = lite_parse_document(&text);
 
             assert!(

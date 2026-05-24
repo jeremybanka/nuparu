@@ -8,8 +8,8 @@ Command Palette command `nuparu: Format Current Nushell File`.
 
 ## Development
 
-Open this `vscode/` folder in VS Code and press `F5` to launch an Extension
-Development Host.
+Open the `vscode/nuparu-vscode/` folder in VS Code and press `F5` to launch an
+Extension Development Host.
 
 Build the extension with:
 

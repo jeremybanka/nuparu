@@ -26,7 +26,8 @@ This repo uses:
 - `mise` for toolchain management
 - `just` for common project tasks
 - Rust for the formatter binary
-- a TypeScript + `tsdown` VS Code extension in [`vscode/`](/Users/jem/dojo/nufmt/vscode)
+- a TypeScript + `tsdown` VS Code extension in
+  [`vscode/nuparu-vscode/`](/Users/jem/dojo/nuparu/vscode/nuparu-vscode)
 
 Install the toolchain:
 
@@ -56,13 +57,13 @@ just vscode-install
 Quick stdin/stdout usage:
 
 ```bash
-printf 'def greet [] {\nprint "hi"\n}\n' | cargo run --quiet
+printf 'def greet [] {\nprint "hi"\n}\n' | cargo run -p nuparu-cli --quiet --bin nuparu
 ```
 
 Install the binary to your user Cargo bin directory:
 
 ```bash
-cargo install --path . --force
+cargo install --path crates/nuparu-cli --force
 ```
 
 Then format through the installed executable:
@@ -85,7 +86,7 @@ aligned with Nushell's crate graph. The evaluation notes live in
 ## Editor integration
 
 There is already a VS Code-compatible extension under
-[vscode/README.md](/Users/jem/dojo/nufmt/vscode/README.md:1). It can:
+[vscode/nuparu-vscode/README.md](/Users/jem/dojo/nuparu/vscode/nuparu-vscode/README.md:1). It can:
 
 - format the current Nushell document
 - participate in normal editor formatting

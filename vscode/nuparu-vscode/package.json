@@ -1,8 +1,8 @@
 {
-  "name": "nuparu",
+  "name": "nuparu-vscode",
   "displayName": "nuparu",
   "description": "Format Nushell files with nuparu.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "jeremybanka",
   "author": "jeremybanka",
   "license": "MIT",

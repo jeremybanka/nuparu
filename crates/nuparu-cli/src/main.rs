@@ -15,7 +15,7 @@ use dprint_core::plugins::{
     AsyncPluginHandler, FileMatchingInfo, FormatRequest, FormatResult, HostFormatRequest,
     PluginInfo, PluginResolveConfigurationResult,
 };
-use nuparu::{Configuration, format_text};
+use nuparu_core::{Configuration, format_text};
 
 struct NuPluginHandler;
 
@@ -47,7 +47,7 @@ impl AsyncPluginHandler for NuPluginHandler {
         let indent_width = get_value(
             &mut config,
             "indentWidth",
-            global_config.indent_width.unwrap_or(2) as u8,
+            global_config.indent_width.unwrap_or(2),
             &mut diagnostics,
         );
         let max_blank_lines = get_value(&mut config, "maxBlankLines", 1u8, &mut diagnostics);

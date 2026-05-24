@@ -4,25 +4,31 @@ default:
   @just --list
 
 check:
-  cargo check
+  cargo check --workspace
 
 test:
-  cargo test
+  cargo test --workspace
 
 fmt:
-  cargo fmt
+  cargo fmt --all
 
 clippy:
-  cargo clippy --all-targets --all-features -- -D warnings
+  cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 run:
-  cargo run
+  cargo run -p nuparu-cli --bin nuparu
+
+version-sync:
+  pnpm version-sync
+
+release:
+  pnpm release
 
 vscode-build:
-  pnpm --dir vscode build
+  pnpm --filter nuparu-vscode build
 
 vscode-package:
-  pnpm --dir vscode package
+  pnpm --filter nuparu-vscode package
 
 vscode-install:
-  pnpm --dir vscode install:codium
+  pnpm --filter nuparu-vscode install:codium

@@ -49,9 +49,7 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             line_tokens(&lexed.tokens, line.start, line.end, &normalized);
         let line_body = if multiline_string_lines[index] {
             trimmed_end.to_string()
-        } else if has_verbatim_multiline_token {
-            content.to_string()
-        } else if has_structural_multiline_token {
+        } else if has_verbatim_multiline_token || has_structural_multiline_token {
             content.to_string()
         } else {
             format_line(trimmed_end, &line_tokens, &normalized)
@@ -76,9 +74,11 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             }
         } else if !multiline_string_lines[index] {
             let continuation_indent = continuation_indent_level(&lines, index, content);
-            result.push_str(&" ".repeat(
-                (effective_indent + continuation_indent) * config.indent_width as usize,
-            ));
+            result.push_str(
+                &" ".repeat(
+                    (effective_indent + continuation_indent) * config.indent_width as usize,
+                ),
+            );
         }
 
         if multiline_string_lines[index] {
@@ -87,8 +87,6 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             } else {
                 result.push_str(content);
             }
-        } else if has_structural_multiline_token {
-            result.push_str(&line_body);
         } else {
             result.push_str(&line_body);
         }
@@ -354,13 +352,12 @@ fn join_separator(
     let previous_indent = leading_indent(lines[index - 1].text);
     let continuation_indent = current_indent >= previous_indent;
 
-    if content.starts_with('(') || content.starts_with('[') {
-        if previous_output.ends_with('=')
+    if (content.starts_with('(') || content.starts_with('['))
+        && (previous_output.ends_with('=')
             || previous_output.ends_with("return")
-            || matches!(previous_output, "if" | "else if" | "while" | "match")
-        {
-            return Some(" ");
-        }
+            || matches!(previous_output, "if" | "else if" | "while" | "match"))
+    {
+        return Some(" ");
     }
 
     if content == "{" && can_join_block_opener(previous_output) {
@@ -494,7 +491,9 @@ fn is_closure_signature(content: &str) -> bool {
 }
 
 fn leading_indent(text: &str) -> usize {
-    text.chars().take_while(|ch| ch.is_ascii_whitespace()).count()
+    text.chars()
+        .take_while(|ch| ch.is_ascii_whitespace())
+        .count()
 }
 
 fn continuation_indent_level(lines: &[SourceLine<'_>], index: usize, content: &str) -> usize {
@@ -556,12 +555,12 @@ fn next_nonempty_content<'a>(lines: &[SourceLine<'a>], index: usize) -> Option<&
 
 fn next_indent_level(content: &str, current_indent: usize) -> usize {
     let mut indent = current_indent;
-    let mut chars = content.chars().peekable();
+    let chars = content.chars();
     let mut in_single_quote = false;
     let mut in_double_quote = false;
     let mut escaped = false;
 
-    while let Some(ch) = chars.next() {
+    for ch in chars {
         if escaped {
             escaped = false;
             continue;
@@ -679,8 +678,7 @@ mod tests {
 
     #[test]
     fn rejoins_parameter_types_and_defaults() {
-        let input =
-            "export def get-setting [\n  settings:\n    record\n  default_value: any =\n    null\n]\n";
+        let input = "export def get-setting [\n  settings:\n    record\n  default_value: any =\n    null\n]\n";
         let output = format_text(input, &Configuration::default());
         assert_eq!(
             output,
@@ -728,7 +726,8 @@ mod tests {
 
     #[test]
     fn rejoins_boolean_conditions_when_they_fit() {
-        let input = "if (\n  $line != \"\"\n  and not ($line | str starts-with \"#\")\n) {\n  $line\n}\n";
+        let input =
+            "if (\n  $line != \"\"\n  and not ($line | str starts-with \"#\")\n) {\n  $line\n}\n";
         let output = format_text(input, &Configuration::default());
         assert_eq!(
             output,
@@ -754,6 +753,9 @@ mod tests {
     fn rejoins_completion_tails() {
         let input = "do { ^limactl stop $instance_name }\n| complete\n| ignore\n";
         let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "do { ^limactl stop $instance_name } | complete | ignore\n");
+        assert_eq!(
+            output,
+            "do { ^limactl stop $instance_name } | complete | ignore\n"
+        );
     }
 }
