@@ -1,4 +1,4 @@
-set shell := ["zsh", "-cu"]
+set shell := ["nu", "--no-config-file", "-c"]
 
 default:
     @just --list
@@ -13,24 +13,19 @@ install-vscode:
     pnpm --filter nuparu-vscode install
 install-cargo:
     cargo install --path ./crates/nuparu-cli
+
 u distribution:
     just use {{ distribution }}
 use distribution:
-    case "{{ distribution }}" in cargo) just use-cargo ;; npm) just use-npm ;; *) printf '%s\n' 'Invalid distribution. Must be "cargo" or "npm".' >&2; exit 1 ;; esac
+    match "{{ distribution }}" { "cargo" => { just use-cargo }, "npm" => { just use-npm }, _ => { print --stderr 'Invalid distribution. Must be "cargo" or "npm".'; exit 1 } }
 use-cargo:
-    printf '%s\n' cargo > .nuparu-distribution
-    printf '%s\n' 'nuparu distributable set to cargo.'
+    "cargo" | save --force .nuparu-distribution
+    print 'nuparu distributable set to cargo.'
 use-npm:
-    printf '%s\n' npm > .nuparu-distribution
-    printf '%s\n' 'nuparu distributable set to npm.'
-vscode-use-cargo:
-    just use-cargo
-vscode-use-npm:
-    just use-npm
-vscode-which-nuparu:
-    just which-nuparu
+    "npm" | save --force .nuparu-distribution
+    print 'nuparu distributable set to npm.'
 which-nuparu:
-    if [ -f .nuparu-distribution ]; then tr -d '[:space:]' < .nuparu-distribution; else printf '%s' cargo; fi
+    if (".nuparu-distribution" | path exists) { open .nuparu-distribution | str trim } else { print "cargo" }
 
 r:
     just run
@@ -117,4 +112,4 @@ publish-vscode:
     just vscode-build
     pnpm --filter nuparu-vscode exec vsce publish
 publish-dprint:
-    echo "nuparu-dprint publish is not wired yet; skipping."
+    print "nuparu-dprint publish is not wired yet; skipping."
