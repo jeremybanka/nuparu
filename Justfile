@@ -100,10 +100,10 @@ publish-crates:
     cargo publish -p nuparu-core
     cargo publish -p nuparu-cli
 publish-npm:
-    just build-ts
+    just build-ts 
     pnpm publish -r --filter "./packages/*"
 publish-vscode:
-    just build-vscode
+    pnpm --filter nuparu-vscode exec vsce package
     pnpm --filter nuparu-vscode exec vsce publish
 publish-dprint:
     echo "nuparu-dprint publish is not wired yet; skipping."

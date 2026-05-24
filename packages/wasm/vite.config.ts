@@ -14,7 +14,7 @@ export default defineConfig({
           { pattern: "crates/nuparu-core/**", base: "workspace" },
           { pattern: "crates/nuparu-wasm/**", base: "workspace" },
         ],
-        output: ["dist/**"],
+        output: ["dist/**", "../../target/wasm32-unknown-unknown/release/**"],
       },
     },
   },

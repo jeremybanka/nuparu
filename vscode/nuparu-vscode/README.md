@@ -21,7 +21,7 @@ pnpm build
 Package a VSIX with:
 
 ```bash
-pnpm package
+pnpm run package
 ```
 
 ## Settings
