@@ -13,7 +13,7 @@ if (publicPackagePaths.length === 0) {
   throw new Error("No public package manifests were found to source the release version.");
 }
 
-const packageVersions = new Map();
+const packageVersions = new Map<string, string>();
 for (const relativePath of publicPackagePaths) {
   const manifest = readJson(relativePath);
   packageVersions.set(relativePath, manifest.version);
@@ -32,25 +32,17 @@ for (const [relativePath, version] of packageVersions) {
   }
 }
 
-for (const relativePath of publicPackagePaths) {
-  const manifest = readJson(relativePath);
-  manifest.version = sharedVersion;
-  writeJson(relativePath, manifest);
-}
-
 syncCargoWorkspaceVersion(sharedVersion);
 
-console.log(`Synchronized shared release version ${sharedVersion}.`);
+console.log(`Synchronized shared crate version ${sharedVersion}.`);
 
-function readJson(relativePath) {
-  return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));
+function readJson(relativePath: string): { version: string } {
+  return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8")) as {
+    version: string;
+  };
 }
 
-function writeJson(relativePath, value) {
-  fs.writeFileSync(path.join(root, relativePath), `${JSON.stringify(value, null, 2)}\n`);
-}
-
-function syncCargoWorkspaceVersion(version) {
+function syncCargoWorkspaceVersion(version: string) {
   const cargoTomlPath = path.join(root, "Cargo.toml");
   const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
   const next = cargoToml

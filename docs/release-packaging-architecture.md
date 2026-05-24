@@ -160,7 +160,7 @@ publishing each target.
 Developers run:
 
 ```bash
-pnpm changeset
+just changeset
 ```
 
 Changesets should describe user-facing changes such as:
@@ -177,9 +177,9 @@ Changesets should describe user-facing changes such as:
 
 - updates npm package versions
 - generates changelogs
-- invokes a custom version sync script
+- invokes the repo version workflow
 
-The custom version sync script is responsible for:
+The version workflow is responsible for:
 
 - syncing Rust crate versions in `Cargo.toml`
 - syncing the VS Code extension version
@@ -191,17 +191,23 @@ The custom version sync script is responsible for:
 After merging the release PR:
 
 ```bash
-pnpm release
+just publish
 ```
 
-That script may internally perform:
+Release PR versioning should run:
+
+```bash
+just version
+```
+
+Publishing may internally perform:
 
 ```bash
 cargo publish -p nuparu-core
 cargo publish -p nuparu-cli
 pnpm publish -r
 vsce publish
-./scripts/publish-dprint.sh
+just publish-dprint
 ```
 
 Optional publish steps:

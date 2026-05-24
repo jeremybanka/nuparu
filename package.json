@@ -1,16 +1,11 @@
 {
   "name": "nuparu-workspace",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@11.1.2",
-  "scripts": {
-    "build": "pnpm --filter nuparu-vscode build",
-    "check": "pnpm --filter nuparu-vscode check",
-    "changeset": "changeset",
-    "version-sync": "node ./scripts/sync-versions.mjs",
-    "version-packages": "changeset version && pnpm run version-sync",
-    "release": "pnpm run version-sync && node ./scripts/release.mjs"
-  },
   "devDependencies": {
-    "@changesets/cli": "^2.29.6"
+    "@changesets/cli": "^2.31.0",
+    "@types/node": "^24.12.4",
+    "typescript": "^5.9.3"
   }
 }
