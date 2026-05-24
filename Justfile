@@ -1,4 +1,4 @@
-set shell := ["nu", "--no-config-file", "-c"]
+set shell := ["sh", "-eu", "-c"]
 
 default:
     @just --list
@@ -47,20 +47,22 @@ fmt:
     just fmt-vp
 fmt-cargo:
     cargo fmt --all
+fmt-cargo-check:
+    cargo fmt --all --check
 fmt-vp:
     pnpm exec vp fmt
 c:
     just check
 check:
-    just check-cargo
     just check-clippy
+    just check-oxlint
     just check-vp
-check-vp:
-    pnpm exec vp check
 check-cargo:
-    cargo check --workspace
+    cargo check --workspace --all-features
 check-clippy:
     cargo clippy --workspace --all-targets --all-features -- -D warnings
+check-vp:
+    pnpm exec vp check
 
 # BUILD SYSTEM
 b:
@@ -104,4 +106,4 @@ publish-vscode:
     just build-vscode
     pnpm --filter nuparu-vscode exec vsce publish
 publish-dprint:
-    print "nuparu-dprint publish is not wired yet; skipping."
+    echo "nuparu-dprint publish is not wired yet; skipping."
