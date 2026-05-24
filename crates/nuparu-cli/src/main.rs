@@ -67,10 +67,7 @@ fn run_cli_with_formatter(
     })
 }
 
-fn rewrite_file_preserving_permissions(
-    path: &Path,
-    format: impl Fn(&str) -> String,
-) -> Result<()> {
+fn rewrite_file_preserving_permissions(path: &Path, format: impl Fn(&str) -> String) -> Result<()> {
     let file_text = std::fs::read_to_string(path)?;
     let formatted = format(&file_text);
     if formatted == file_text {

@@ -88,11 +88,9 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
                 result.push_str(&" ".repeat(leading_indent(lines[index].text)));
             } else {
                 let continuation_indent = continuation_indent_level(&lines, index, content);
-                result.push_str(
-                    &" ".repeat(
-                        (effective_indent + continuation_indent) * config.indent_width as usize,
-                    ),
-                );
+                result.push_str(&" ".repeat(
+                    (effective_indent + continuation_indent) * config.indent_width as usize,
+                ));
             }
         }
 
@@ -279,8 +277,10 @@ fn preserved_multiline_list_lines(lines: &[SourceLine<'_>]) -> Vec<bool> {
                                 open_list.start_depth,
                             );
                             if item_lines >= MULTILINE_LIST_PRESERVE_THRESHOLD {
-                                for preserved_line in
-                                    preserve.iter_mut().take(line_index).skip(open_list.start_line + 1)
+                                for preserved_line in preserve
+                                    .iter_mut()
+                                    .take(line_index)
+                                    .skip(open_list.start_line + 1)
                                 {
                                     *preserved_line = true;
                                 }
@@ -848,11 +848,7 @@ fn is_simple_closure_body_line(content: &str) -> bool {
     is_simple_expression_start(content)
 }
 
-fn should_join_closure_body_line(
-    lines: &[SourceLine<'_>],
-    index: usize,
-    content: &str,
-) -> bool {
+fn should_join_closure_body_line(lines: &[SourceLine<'_>], index: usize, content: &str) -> bool {
     is_simple_closure_body_line(content)
         && next_nonempty_content(lines, index).is_some_and(|next| next == "}")
 }
@@ -1240,7 +1236,8 @@ mod tests {
 
     #[test]
     fn keeps_print_and_return_as_distinct_statements_in_another_fixture_shape() {
-        let input = "if ($pids | is-empty) {\n  print \"No running hx sessions found.\"\n  return\n}\n";
+        let input =
+            "if ($pids | is-empty) {\n  print \"No running hx sessions found.\"\n  return\n}\n";
         let output = format_text(input, &Configuration::default());
         assert_eq!(output, input);
     }
@@ -1282,7 +1279,8 @@ mod tests {
 
     #[test]
     fn keeps_metadata_print_lines_on_separate_lines() {
-        let input = "print \"Metadata:\"\nprint $\"  ($resolved_url_file)\"\nprint $\"  ($sha256_file)\"\n";
+        let input =
+            "print \"Metadata:\"\nprint $\"  ($resolved_url_file)\"\nprint $\"  ($sha256_file)\"\n";
         let output = format_text(input, &Configuration::default());
         assert_eq!(output, input);
     }
