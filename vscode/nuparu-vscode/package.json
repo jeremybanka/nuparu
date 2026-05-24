@@ -28,7 +28,7 @@
     "dev": "vp pack --watch",
     "check": "vp check",
     "test": "vp test",
-    "vscode:install": "pnpm build && code --install-extension nuparu-vscode-0.1.0.vsix"
+    "vscode:install": "pnpm build && node install-vscode.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",

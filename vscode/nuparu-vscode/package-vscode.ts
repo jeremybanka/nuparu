@@ -15,10 +15,12 @@ const manifest = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as {
   version: string;
   files?: string[];
 };
+const vsixDir = path.join(packageDir, "vsix");
 
 const stagingRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nuparu-vscode-package-"));
 const stagingDir = path.join(stagingRoot, manifest.name);
 fs.mkdirSync(stagingDir, { recursive: true });
+fs.mkdirSync(vsixDir, { recursive: true });
 
 for (const relativePath of manifest.files ?? []) {
   const sourcePath = path.join(packageDir, relativePath);
@@ -39,7 +41,7 @@ fs.writeFileSync(
   `${JSON.stringify(stagedManifest, null, 2)}\n`,
 );
 
-const vsixPath = path.join(packageDir, `${manifest.name}-${manifest.version}.vsix`);
+const vsixPath = path.join(vsixDir, `${manifest.name}-${manifest.version}.vsix`);
 const vscePath = path.join(packageDir, "node_modules/.bin/vsce");
 
 childProcess.execFileSync(vscePath, ["package", "--allow-missing-repository", "--out", vsixPath], {
