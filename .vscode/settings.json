@@ -11,8 +11,8 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "nefrob.vscode-just-syntax"
   },
-  "vscode-just.justPath": "/Users/jem/dojo/nuparu/.vscode/bin/just",
-  "vscode-just.lspPath": "/Users/jem/dojo/nuparu/.vscode/bin/just-lsp",
+  "vscode-just.justPath": ".vscode/bin/just",
+  "vscode-just.lspPath": ".vscode/bin/just-lsp",
 
   // Rust
   "[rust]": {
@@ -42,6 +42,6 @@
   "oxc.enable.oxlint": true,
   "oxc.fmt.configPath": "./vite.config.ts",
   "oxc.lint.run": "onType",
-  "oxc.path.oxfmt": "/Users/jem/dojo/nuparu/.vscode/bin/oxfmt",
-  "oxc.path.oxlint": "/Users/jem/dojo/nuparu/.vscode/bin/oxlint"
+  "oxc.path.oxfmt": ".vscode/bin/oxfmt",
+  "oxc.path.oxlint": ".vscode/bin/oxlint"
 }
