@@ -2,10 +2,8 @@ import childProcess from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const workspaceRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const packageDir = path.join(workspaceRoot, "vscode/nuparu-vscode");
+const packageDir = import.meta.dirname;
 const packageJsonPath = path.join(packageDir, "package.json");
 
 if (!fs.existsSync(packageJsonPath)) {
@@ -27,7 +25,7 @@ for (const relativePath of manifest.files ?? []) {
   const destinationPath = path.join(stagingDir, relativePath);
 
   fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
-  fs.cpSync(sourcePath, destinationPath, { recursive: true });
+  fs.cpSync(sourcePath, destinationPath, { recursive: true, dereference: true });
 }
 
 const stagedManifest = {

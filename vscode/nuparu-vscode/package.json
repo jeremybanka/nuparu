@@ -18,17 +18,17 @@
   "files": [
     "dist",
     "icon.png",
+    "LICENSE",
     "README.md",
     "package.json"
   ],
   "main": "./dist/extension.cjs",
   "scripts": {
-    "build": "vp pack",
+    "build": "vp pack && node package-vscode.ts",
     "dev": "vp pack --watch",
     "check": "vp check",
     "test": "vp test",
-    "package": "pnpm build && node ../../scripts/package-vscode.ts",
-    "install": "pnpm package && code --install-extension nuparu-vscode-0.1.0.vsix"
+    "vscode:install": "pnpm build && code --install-extension nuparu-vscode-0.1.0.vsix"
   },
   "devDependencies": {
     "@types/node": "catalog:",

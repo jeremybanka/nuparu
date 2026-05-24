@@ -9,23 +9,19 @@ i:
 install:
     just install-cargo
     just install-vscode
-install-vscode:
-    pnpm --filter nuparu-vscode install
 install-cargo:
     cargo install --path ./crates/nuparu-cli
+install-vscode:
+    pnpm --filter nuparu-vscode vscode:install
 
 u distribution:
     just use {{ distribution }}
 use distribution:
-    match "{{ distribution }}" { "cargo" => { just use-cargo }, "npm" => { just use-npm }, _ => { print --stderr 'Invalid distribution. Must be "cargo" or "npm".'; exit 1 } }
-use-cargo:
-    "cargo" | save --force .nuparu-distribution
-    print 'nuparu distributable set to cargo.'
-use-npm:
-    "npm" | save --force .nuparu-distribution
-    print 'nuparu distributable set to npm.'
-which-nuparu:
-    if (".nuparu-distribution" | path exists) { open .nuparu-distribution | str trim } else { print "cargo" }
+    node ./scripts/nuparu-distribution.ts set {{ distribution }}
+w:
+    just which
+which:
+    node ./scripts/nuparu-distribution.ts which
 
 r:
     just run
@@ -70,16 +66,11 @@ b:
     just build
 build:
     just build-cargo
-    just build-vp
+    just build-ts
 build-cargo:
     cargo build --workspace
 build-ts:
-    just build-vp
-    just build-vscode
-build-vp:
     pnpm exec vp run -r build
-build-vscode:
-    pnpm --filter nuparu-vscode package
 
 # RELEASE SYSTEM
 n:
@@ -106,10 +97,10 @@ publish-crates:
     cargo publish -p nuparu-core
     cargo publish -p nuparu-cli
 publish-npm:
-    just packages-build
+    just build-ts
     pnpm publish -r --filter "./packages/*"
 publish-vscode:
-    just vscode-build
+    just build-vscode
     pnpm --filter nuparu-vscode exec vsce publish
 publish-dprint:
     print "nuparu-dprint publish is not wired yet; skipping."
