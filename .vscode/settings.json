@@ -1,8 +1,20 @@
 {
+  // Nushell
   "[nushell]": {
     "editor.defaultFormatter": "jeremybanka.nuparu",
     "editor.formatOnSave": true
   },
+  "nuparu.path": "~/cargo/bin/nuparu",
+
+  // Just
+  "[just]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "nefrob.vscode-just-syntax"
+  },
+  "vscode-just.justPath": "/Users/jem/.local/share/mise/shims/just",
+  "vscode-just.lspPath": "/Users/jem/.local/share/mise/shims/just-lsp",
+
+  // Rust
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
     "editor.formatOnSave": true
@@ -10,20 +22,26 @@
   "rust-analyzer.cargo.allTargets": true,
   "rust-analyzer.check.command": "clippy",
   "rust-analyzer.procMacro.enable": true,
-  
-  "[typescript,json,yaml]": {
+
+  // TOML
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  },
+
+  // OXC
+  "[typescript][json][jsonc][yaml]": {
     "editor.codeActionsOnSave": {
       "source.fixAll.oxc": "always"
     },
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "file",
+    "editor.formatOnSaveMode": "file"
   },
-	"oxc.configPath": "./vite.config.ts",
-	"oxc.enable.oxfmt": true,
-	"oxc.enable.oxlint": true,
-	"oxc.fmt.configPath": "./vite.config.ts",
-	"oxc.lint.run": "onType",
-	"oxc.path.oxfmt": "./node_modules/.bin/oxfmt",
-	"oxc.path.oxlint": "./node_modules/.bin/oxlint"
+  "oxc.configPath": "./vite.config.ts",
+  "oxc.enable.oxfmt": true,
+  "oxc.enable.oxlint": true,
+  "oxc.fmt.configPath": "./vite.config.ts",
+  "oxc.lint.run": "onType",
+  "oxc.path.oxfmt": "./.vscode/bin/oxfmt",
+  "oxc.path.oxlint": "./.vscode/bin/oxlint"
 }

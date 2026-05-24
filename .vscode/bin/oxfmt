@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+workspace_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd)
+node_path=$("$script_dir/resolve-node")
+
+exec "$node_path" "$workspace_dir/node_modules/vite-plus/bin/oxfmt" "$@"
