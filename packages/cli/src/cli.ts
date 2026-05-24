@@ -17,6 +17,18 @@ const exitCode = runCli(
     writeStderr(text) {
       process.stderr.write(text);
     },
+    readFile(path) {
+      return fs.readFileSync(path, "utf8");
+    },
+    writeFile(path, text) {
+      fs.writeFileSync(path, text);
+    },
+    getFileMode(path) {
+      return fs.statSync(path).mode;
+    },
+    setFileMode(path, mode) {
+      fs.chmodSync(path, mode);
+    },
   },
   formatText,
 );

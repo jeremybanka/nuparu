@@ -1,4 +1,5 @@
 use std::io::{self, Read};
+use std::path::Path;
 
 use anyhow::Result;
 use dprint_core::async_runtime::LocalBoxFuture;
@@ -18,6 +19,69 @@ use dprint_core::plugins::{
 use nuparu_core::{Configuration, format_text};
 
 struct NuPluginHandler;
+
+struct CliRun {
+    exit_code: i32,
+    stdout: String,
+    stderr: String,
+}
+
+fn run_cli_with_formatter(
+    args: &[String],
+    stdin: &str,
+    format: impl Fn(&str) -> String,
+) -> Result<CliRun> {
+    if args.is_empty() {
+        return Ok(CliRun {
+            exit_code: 0,
+            stdout: format(stdin),
+            stderr: String::new(),
+        });
+    }
+
+    if matches!(args.first().map(String::as_str), Some("--write" | "-w")) {
+        let file_paths = &args[1..];
+        if file_paths.is_empty() {
+            return Ok(CliRun {
+                exit_code: 1,
+                stdout: String::new(),
+                stderr: "nuparu --write requires at least one file path.\n".to_string(),
+            });
+        }
+
+        for file_path in file_paths {
+            rewrite_file_preserving_permissions(Path::new(file_path), &format)?;
+        }
+
+        return Ok(CliRun {
+            exit_code: 0,
+            stdout: String::new(),
+            stderr: String::new(),
+        });
+    }
+
+    Ok(CliRun {
+        exit_code: 1,
+        stdout: String::new(),
+        stderr: "nuparu does not support command-line arguments yet.\n".to_string(),
+    })
+}
+
+fn rewrite_file_preserving_permissions(
+    path: &Path,
+    format: impl Fn(&str) -> String,
+) -> Result<()> {
+    let file_text = std::fs::read_to_string(path)?;
+    let formatted = format(&file_text);
+    if formatted == file_text {
+        return Ok(());
+    }
+
+    let permissions = std::fs::metadata(path)?.permissions();
+    std::fs::write(path, formatted)?;
+    std::fs::set_permissions(path, permissions)?;
+    Ok(())
+}
 
 #[async_trait(?Send)]
 impl AsyncPluginHandler for NuPluginHandler {
@@ -106,8 +170,80 @@ async fn main() -> Result<()> {
         return handle_process_stdio_messages(NuPluginHandler).await;
     }
 
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
     let mut buffer = String::new();
-    io::stdin().read_to_string(&mut buffer)?;
-    print!("{}", format_text(&buffer, &Configuration::default()));
+    if args.is_empty() {
+        io::stdin().read_to_string(&mut buffer)?;
+    }
+    let run = run_cli_with_formatter(&args, &buffer, |input| {
+        format_text(input, &Configuration::default())
+    })?;
+
+    if !run.stdout.is_empty() {
+        print!("{}", run.stdout);
+    }
+    if !run.stderr.is_empty() {
+        eprint!("{}", run.stderr);
+    }
+
+    if run.exit_code != 0 {
+        std::process::exit(run.exit_code);
+    }
+
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use super::run_cli_with_formatter;
+
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn formats_stdin_when_no_arguments_are_provided() {
+        let run = run_cli_with_formatter(&[], "echo hi", |_| "formatted".to_string()).unwrap();
+        assert_eq!(run.exit_code, 0);
+        assert_eq!(run.stdout, "formatted");
+        assert_eq!(run.stderr, "");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn preserves_executable_mode_when_rewriting_real_update_fixture_shape() {
+        let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../fixtures/dotfiles/scripts/update.nu");
+        let fixture_text = fs::read_to_string(&fixture_path).unwrap();
+        let temp_path = unique_temp_path("nuparu-cli-update-mode");
+
+        fs::write(&temp_path, &fixture_text).unwrap();
+        let permissions = fs::Permissions::from_mode(0o755);
+        fs::set_permissions(&temp_path, permissions).unwrap();
+
+        let args = vec![
+            "--write".to_string(),
+            temp_path.to_string_lossy().into_owned(),
+        ];
+        let run = run_cli_with_formatter(&args, "", |input| format!("{input}\n")).unwrap();
+
+        assert_eq!(run.exit_code, 0);
+        assert_eq!(run.stdout, "");
+        assert_eq!(run.stderr, "");
+        let mode = fs::metadata(&temp_path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o755);
+
+        let _ = fs::remove_file(&temp_path);
+    }
+
+    fn unique_temp_path(prefix: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("{prefix}-{nanos}.nu"))
+    }
 }

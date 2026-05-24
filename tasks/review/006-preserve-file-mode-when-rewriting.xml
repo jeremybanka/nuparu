@@ -1,6 +1,6 @@
 <task>
   <id>006</id>
-  <status>open</status>
+  <status>review</status>
   <priority>P1</priority>
   <title>Preserve file mode bits when rewriting formatted files</title>
   <summary>
