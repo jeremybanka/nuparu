@@ -40,21 +40,20 @@ def show-instance-port-forwards [lima_dir: string, instance: string] {
     return
   }
 
-  $port_forwards
-  | each { |forward|
-      let guest = ($forward | get -o guestPort | default "?")
-      let host = ($forward | get -o hostPort | default "auto")
-      let guest_ip = ($forward | get -o guestIP | default "")
-      let host_ip = ($forward | get -o hostIP | default "")
-      let guest_label = if ($guest_ip | is-empty) { $guest } else { $"($guest_ip):($guest)" }
-      let host_label = if ($host | describe) == "int" {
-        let scheme = if $host == 443 { "https" } else { "http" }
-        $"($scheme)://localhost:($host)/"
-      } else if ($host_ip | is-empty) {
-        $host
-      } else {
-        $"($host_ip):($host)"
-      }
-      print $"  ($guest_label) -> ($host_label)"
+  $port_forwards | each { |forward|
+    let guest = ($forward | get -o guestPort | default "?")
+    let host = ($forward | get -o hostPort | default "auto")
+    let guest_ip = ($forward | get -o guestIP | default "")
+    let host_ip = ($forward | get -o hostIP | default "")
+    let guest_label = if ($guest_ip | is-empty) { $guest } else { $"($guest_ip):($guest)" }
+    let host_label = if ($host | describe) == "int" {
+      let scheme = if $host == 443 { "https" } else { "http" }
+      $"($scheme)://localhost:($host)/"
+    } else if ($host_ip | is-empty) {
+      $host
+    } else {
+      $"($host_ip):($host)"
     }
+    print $"  ($guest_label) -> ($host_label)"
+  }
 }

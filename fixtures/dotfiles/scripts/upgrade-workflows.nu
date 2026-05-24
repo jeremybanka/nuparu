@@ -221,16 +221,15 @@ def group-workflow-uses [workflow_uses: list<any>] {
   | group-by {|workflow_use| group-key $workflow_use.action_name $workflow_use.current_version }
   | transpose group_key occurrences
   | each { |group|
-      let first = ($group.occurrences | first)
-      {
-        group_key: $group.group_key
-        action_name: $first.action_name
-        current_version: $first.current_version
-        current_ref: $first.current_ref
-        occurrences: $group.occurrences
-      }
+    let first = ($group.occurrences | first)
+    {
+      group_key: $group.group_key
+      action_name: $first.action_name
+      current_version: $first.current_version
+      current_ref: $first.current_ref
+      occurrences: $group.occurrences
     }
-  | sort-by action_name
+  } | sort-by action_name
 }
 
 def group-mise-version-uses [mise_version_uses: list<any>] {
@@ -238,17 +237,17 @@ def group-mise-version-uses [mise_version_uses: list<any>] {
   | group-by current_version
   | transpose current_version occurrences
   | each { |group|
-      let parsed = (parse-version $group.current_version)
-      {
-        dep_name: 'jdx/mise'
-        current_version: $group.current_version
-        occurrences: $group.occurrences
-        sort_major: ($parsed | get -o major | default (-1))
-        sort_minor: ($parsed | get -o minor | default (-1))
-        sort_patch: ($parsed | get -o patch | default (-1))
-        sort_segments: ($parsed | get -o segments | default (-1))
-      }
+    let parsed = (parse-version $group.current_version)
+    {
+      dep_name: 'jdx/mise'
+      current_version: $group.current_version
+      occurrences: $group.occurrences
+      sort_major: ($parsed | get -o major | default (-1))
+      sort_minor: ($parsed | get -o minor | default (-1))
+      sort_patch: ($parsed | get -o patch | default (-1))
+      sort_segments: ($parsed | get -o segments | default (-1))
     }
+  }
   | sort-by sort_major sort_minor sort_patch sort_segments current_version
   | reject sort_major sort_minor sort_patch sort_segments
 }
@@ -262,38 +261,37 @@ def resolve-updates [groups: list<any>] {
       }
   )
 
-  $groups
-  | each { |group|
-      let repository = $group.action_name
-      let available_tags = ($tag_cache | get $repository)
-      let target_tag = (select-latest-tag $available_tags)
+  $groups | each { |group|
+    let repository = $group.action_name
+    let available_tags = ($tag_cache | get $repository)
+    let target_tag = (select-latest-tag $available_tags)
 
-      if $target_tag == null {
-        {
-          group_key: (group-key $group.action_name $group.current_version)
-          dep_name: $group.action_name
-          current_version: $group.current_version
-          current_ref: $group.current_ref
-          current_short_ref: (short-sha $group.current_ref)
-          target_version: $group.current_version
-          target_ref: $group.current_ref
-          has_update: false
-        }
-      } else {
-        let target_ref = (resolve-tag-commit $repository $target_tag)
-        let target_version = (normalize-version $target_tag)
-        {
-          group_key: (group-key $group.action_name $group.current_version)
-          dep_name: $group.action_name
-          current_version: $group.current_version
-          current_ref: $group.current_ref
-          current_short_ref: (short-sha $group.current_ref)
-          target_version: $target_version
-          target_ref: $target_ref
-          has_update: (($group.current_ref != $target_ref) or ($group.current_version != $target_version))
-        }
+    if $target_tag == null {
+      {
+        group_key: (group-key $group.action_name $group.current_version)
+        dep_name: $group.action_name
+        current_version: $group.current_version
+        current_ref: $group.current_ref
+        current_short_ref: (short-sha $group.current_ref)
+        target_version: $group.current_version
+        target_ref: $group.current_ref
+        has_update: false
+      }
+    } else {
+      let target_ref = (resolve-tag-commit $repository $target_tag)
+      let target_version = (normalize-version $target_tag)
+      {
+        group_key: (group-key $group.action_name $group.current_version)
+        dep_name: $group.action_name
+        current_version: $group.current_version
+        current_ref: $group.current_ref
+        current_short_ref: (short-sha $group.current_ref)
+        target_version: $target_version
+        target_ref: $target_ref
+        has_update: (($group.current_ref != $target_ref) or ($group.current_version != $target_version))
       }
     }
+  }
 }
 
 def resolve-mise-updates [groups: list<any>] {
@@ -319,15 +317,14 @@ def resolve-mise-updates [groups: list<any>] {
   }
 
   let target_version = (normalize-version $target_tag)
-  $groups
-  | each { |group|
-      {
-        dep_name: $group.dep_name
-        current_version: $group.current_version
-        target_version: $target_version
-        has_update: ($group.current_version != $target_version)
-      }
+  $groups | each { |group|
+    {
+      dep_name: $group.dep_name
+      current_version: $group.current_version
+      target_version: $target_version
+      has_update: ($group.current_version != $target_version)
     }
+  }
 }
 
 def get-repository-tags [repository: string] {
@@ -346,9 +343,9 @@ def get-repository-tags [repository: string] {
   $result.stdout
   | lines
   | each { |line|
-      let columns = ($line | split row --regex '\s+')
-      $columns | get -o 1 | default ''
-    }
+    let columns = ($line | split row --regex '\s+')
+    $columns | get -o 1 | default ''
+  }
   | where {|ref| $ref != '' }
   | each {|ref| $ref | str replace 'refs/tags/' '' }
 }
