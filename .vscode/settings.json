@@ -4,7 +4,8 @@
     "editor.defaultFormatter": "jeremybanka.nuparu",
     "editor.formatOnSave": true
   },
-  "nuparu.path": "/Users/jem/dojo/nuparu/.vscode/bin/nuparu",
+  // Route through the workspace launcher so VS Code stays pinned to this repo's builds.
+  "nuparu.path": ".vscode/bin/nuparu",
 
   // Just
   "[just]": {

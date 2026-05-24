@@ -104,6 +104,20 @@ There is already a VS Code-compatible extension under
 - discover `nuparu` automatically from common install locations such as
   `~/.cargo/bin/nuparu`
 
+In this workspace, VS Code is pinned to the repo-local launcher at
+`.vscode/bin/nuparu` instead of whatever `nuparu` your shell exposes. That
+launcher defaults to the current Cargo build at `target/debug/nuparu`.
+
+You can switch the launcher between the two local distributables with:
+
+```bash
+just vscode-use-cargo
+just vscode-use-npm
+```
+
+The selector lives in `.vscode/nuparu-distribution`, which is intentionally
+ignored so you can flip it locally without creating git noise.
+
 Planned editor follow-up work is tracked in
 [docs/TODO.md](/Users/jem/dojo/nufmt/docs/TODO.md:1), including:
 

@@ -7,11 +7,29 @@ default:
 i:
     just install
 install:
+    just install-cargo
     just install-vscode
 install-vscode:
-    pnpm --filter nuparu-vscode install:codium
+    pnpm --filter nuparu-vscode install
 install-cargo:
-    cargo install --path ./packages/cli
+    cargo install --path ./crates/nuparu-cli
+u distribution:
+    just use distribution={{ distribution }}
+use distribution:
+    if [ {{ distribution }} == "cargo" ] then just vscode-use-cargo;
+    else if [ {{ distribution }} == "npm" ] then just vscode-use-npm;
+    else printf '%s\n' 'Invalid distribution. Must be "cargo" or "npm".'; fi; fi
+vscode-use-cargo:
+    mkdir -p .vscode
+    printf '%s\n' cargo > .vscode/nuparu-distribution
+    printf '%s\n' 'VS Code nuparu distributable set to cargo.'
+vscode-use-npm:
+    mkdir -p .vscode
+    printf '%s\n' npm > .vscode/nuparu-distribution
+    printf '%s\n' 'VS Code nuparu distributable set to npm.'
+vscode-which-nuparu:
+    if [ -f .vscode/nuparu-distribution ]; then tr -d '[:space:]' < .vscode/nuparu-distribution; else printf '%s' cargo; fi
+
 r:
     just run
 run:
