@@ -104,19 +104,19 @@ There is already a VS Code-compatible extension under
 - discover `nuparu` automatically from common install locations such as
   `~/.cargo/bin/nuparu`
 
-In this workspace, VS Code is pinned to the repo-local launcher at
-`.vscode/bin/nuparu` instead of whatever `nuparu` your shell exposes. That
-launcher defaults to the current Cargo build at `target/debug/nuparu`.
+In this workspace, VS Code and Helix are pinned to the repo-local launcher at
+`bin/nuparu` instead of whatever `nuparu` your shell exposes. That launcher
+defaults to the current Cargo build at `target/debug/nuparu`.
 
 You can switch the launcher between the two local distributables with:
 
 ```bash
-just vscode-use-cargo
-just vscode-use-npm
+just use cargo
+just use npm
 ```
 
-The selector lives in `.vscode/nuparu-distribution`, which is intentionally
-ignored so you can flip it locally without creating git noise.
+The selector lives in `.nuparu-distribution`, which is intentionally ignored so
+you can flip it locally without creating git noise.
 
 Planned editor follow-up work is tracked in
 [docs/TODO.md](/Users/jem/dojo/nufmt/docs/TODO.md:1), including:
@@ -132,12 +132,12 @@ This repo now includes a project-local Helix override in
 It configures the built-in `nu` language to:
 
 - use `nu-lsp` as the language server
-- use `nuparu` as the formatter
+- use `./bin/nuparu` as the formatter
 - enable `auto-format`
 - use a `text-width` of `80`
 
-If `nuparu` is installed on your `PATH`, Helix should pick it up automatically
-for this workspace. You can verify that with:
+Helix uses the same repo-local launcher as VS Code, so it stays aligned with
+the selected distributable. You can verify that with:
 
 ```bash
 hx --health nu

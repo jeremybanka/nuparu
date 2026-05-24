@@ -3,8 +3,8 @@
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-workspace_dir=$(CDPATH= cd -- "$script_dir/../.." && pwd)
-distribution_file="$workspace_dir/.vscode/nuparu-distribution"
+workspace_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
+distribution_file="$workspace_dir/.nuparu-distribution"
 
 fail() {
   printf '%s\n' "$1" >&2
@@ -20,19 +20,19 @@ case "$distribution" in
   cargo)
     cargo_bin="$workspace_dir/target/debug/nuparu"
     if [ ! -x "$cargo_bin" ]; then
-      fail "VS Code is configured to use the cargo distributable, but $cargo_bin is missing. Run 'just build-cargo' or switch with 'just vscode-use-npm'."
+      fail "nuparu is configured to use the cargo distributable, but $cargo_bin is missing. Run 'just build-cargo' or switch with 'just use npm'."
     fi
     exec "$cargo_bin" "$@"
     ;;
   npm)
     cli_entry="$workspace_dir/packages/cli/dist/cli.mjs"
     if [ ! -f "$cli_entry" ]; then
-      fail "VS Code is configured to use the npm distributable, but $cli_entry is missing. Run 'just build-ts' or switch with 'just vscode-use-cargo'."
+      fail "nuparu is configured to use the npm distributable, but $cli_entry is missing. Run 'just build-ts' or switch with 'just use cargo'."
     fi
     node_bin=$("$script_dir/resolve-node")
     exec "$node_bin" "$cli_entry" "$@"
     ;;
   *)
-    fail "Unknown VS Code nuparu distributable '$distribution'. Use 'cargo' or 'npm' in $distribution_file."
+    fail "Unknown nuparu distributable '$distribution'. Use 'cargo' or 'npm' in $distribution_file."
     ;;
 esac

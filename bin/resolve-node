@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+workspace_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
+
+if command -v node >/dev/null 2>&1; then
+  command -v node
+  exit 0
+fi
+
+if command -v mise >/dev/null 2>&1; then
+  mise_node_root=$(mise where node 2>/dev/null || true)
+  if [ -n "${mise_node_root:-}" ] && [ -x "$mise_node_root/bin/node" ]; then
+    printf '%s\n' "$mise_node_root/bin/node"
+    exit 0
+  fi
+fi
+
+node_version=$(sed -n 's/^node = "\(.*\)"$/\1/p' "$workspace_dir/mise.toml" | head -n 1)
+if [ -n "${node_version:-}" ] && [ -x "$HOME/.local/share/mise/installs/node/$node_version/bin/node" ]; then
+  printf '%s\n' "$HOME/.local/share/mise/installs/node/$node_version/bin/node"
+  exit 0
+fi
+
+printf '%s\n' "Unable to find a Node.js runtime for nuparu. Install the version from mise.toml or add node to PATH." >&2
+exit 1

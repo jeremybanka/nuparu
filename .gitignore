@@ -10,4 +10,4 @@
 /packages/*/node_modules/
 /.pnpm-store/
 /.turbo/
-/.vscode/nuparu-distribution
+/.nuparu-distribution
