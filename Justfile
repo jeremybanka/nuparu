@@ -3,65 +3,79 @@ set shell := ["zsh", "-cu"]
 default:
   @just --list
 
-changeset:
-  pnpm exec changeset
 
+# USE FROM SOURCE
+i:
+install:
+  just install-vscode
+install-vscode:
+  pnpm --filter nuparu-vscode install:codium
+install-cargo:
+  cargo install --path ./packages/cli
+r:
+run:
+  cargo run -p nuparu-cli --bin nuparu
+
+# TEST
+t:
+test:
+  just test-cargo
+  just test-ts
+tc:
+test-cargo:
+  cargo test --workspace --all-features
+tt:
+test-ts:
+  pnpm exec vp run -r test
+
+# STATIC ANALYSIS
+f:
+fmt:
+  just fmt-vp
+fc:
+fmt-cargo:
+  cargo fmt --all
+fv:
+fmt-vp:
+  pnpm exec vp fmt
+c:
 check:
-ch:
   just check-cargo
   just check-clippy
   just check-vp
-check-vp:
 cv:
-  vp check
-check-cargo:
+check-vp:
+  pnpm exec vp check
 cc:
+check-cargo:
   cargo check --workspace
-check-clippy:
 cl:
+check-clippy:
   cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-build:
+# BUILD SYSTEM
 b:
+build:
   just build-cargo
   just build-vp
-build-cargo:
 bc:
+build-cargo:
   cargo build --workspace
-build-ts:
 bt:
+build-ts:
   just build-vp
   just build-vscode
 build-vp:
-  vp run -r build
+  pnpm exec vp run -r build
 build-vscode:
   pnpm --filter nuparu-vscode package
 
-fmt:
-f:
-  just fmt-vp
-fmt-cargo:
-fc:
-  cargo fmt --all
-fmt-vp:
-fv:
-  pnpm exec vp fmt
+# RELEASE SYSTEM
+n:
+notes:
+  pnpm exec changeset
 
-test:
-t:
-  just test-cargo
-  just test-ts
-test-cargo:
-tc:
-  cargo test --workspace --all-features
-test-ts:
-tt:
-  pnpm exec vp run -r test
-
-run:
-r:
-  cargo run -p nuparu-cli --bin nuparu
-
+# BUMP THE VERSION
 version:
   just version-ts
   just version-crates
@@ -70,6 +84,7 @@ version-ts:
 version-crates:
   node ./scripts/version-crates.ts
 
+# SEND TO PUBLISHERS
 publish:
   just publish-crates
   just publish-npmjs
@@ -87,8 +102,3 @@ publish-vsce:
 publish-dprint:
   echo "nuparu-dprint publish is not wired yet; skipping."
 
-install:
-i:
-  just install-vscode
-vscode-install:
-  pnpm --filter nuparu-vscode install:codium
