@@ -224,9 +224,9 @@ fn preserved_multiline_list_lines(lines: &[SourceLine<'_>]) -> Vec<bool> {
     let mut escaped = false;
 
     for (line_index, line) in lines.iter().enumerate() {
-        let mut chars = line.text.chars().peekable();
+        let chars = line.text.chars();
 
-        while let Some(ch) = chars.next() {
+        for ch in chars {
             if escaped {
                 escaped = false;
                 continue;
@@ -268,22 +268,22 @@ fn preserved_multiline_list_lines(lines: &[SourceLine<'_>]) -> Vec<bool> {
                         nesting_stack.pop();
                     }
 
-                    if let Some(open_list) = list_stack.pop() {
-                        if open_list.start_line < line_index {
-                            let item_lines = count_significant_list_item_lines(
-                                lines,
-                                open_list.start_line,
-                                line_index,
-                                open_list.start_depth,
-                            );
-                            if item_lines >= MULTILINE_LIST_PRESERVE_THRESHOLD {
-                                for preserved_line in preserve
-                                    .iter_mut()
-                                    .take(line_index)
-                                    .skip(open_list.start_line + 1)
-                                {
-                                    *preserved_line = true;
-                                }
+                    if let Some(open_list) = list_stack.pop()
+                        && open_list.start_line < line_index
+                    {
+                        let item_lines = count_significant_list_item_lines(
+                            lines,
+                            open_list.start_line,
+                            line_index,
+                            open_list.start_depth,
+                        );
+                        if item_lines >= MULTILINE_LIST_PRESERVE_THRESHOLD {
+                            for preserved_line in preserve
+                                .iter_mut()
+                                .take(line_index)
+                                .skip(open_list.start_line + 1)
+                            {
+                                *preserved_line = true;
                             }
                         }
                     }
@@ -320,9 +320,9 @@ fn preserved_multiline_group_expression_lines(lines: &[SourceLine<'_>]) -> Vec<b
     let mut escaped = false;
 
     for (line_index, line) in lines.iter().enumerate() {
-        let mut chars = line.text.chars().peekable();
+        let chars = line.text.chars();
 
-        while let Some(ch) = chars.next() {
+        for ch in chars {
             if escaped {
                 escaped = false;
                 continue;
@@ -362,21 +362,20 @@ fn preserved_multiline_group_expression_lines(lines: &[SourceLine<'_>]) -> Vec<b
                         nesting_stack.pop();
                     }
 
-                    if let Some(open_group) = group_stack.pop() {
-                        if open_group.start_line < line_index
-                            && should_preserve_multiline_group_expression(
-                                lines,
-                                open_group.start_line,
-                                line_index,
-                            )
+                    if let Some(open_group) = group_stack.pop()
+                        && open_group.start_line < line_index
+                        && should_preserve_multiline_group_expression(
+                            lines,
+                            open_group.start_line,
+                            line_index,
+                        )
+                    {
+                        for preserved_line in preserve
+                            .iter_mut()
+                            .take(line_index)
+                            .skip(open_group.start_line + 1)
                         {
-                            for preserved_line in preserve
-                                .iter_mut()
-                                .take(line_index)
-                                .skip(open_group.start_line + 1)
-                            {
-                                *preserved_line = true;
-                            }
+                            *preserved_line = true;
                         }
                     }
                 }
