@@ -8,6 +8,10 @@ runs:
       with:
         version: 2026.5.9
 
+    - name: Reconcile Rust Toolchain
+      shell: bash
+      run: mise install --force rust
+
     - name: Install Dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
