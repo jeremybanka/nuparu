@@ -10,7 +10,17 @@ check:
   cargo check --workspace
 
 scripts-check:
-  pnpm exec tsc -p tsconfig.json
+  ./node_modules/.bin/tsc -p tsconfig.json
+
+packages-check:
+  ./node_modules/.bin/tsc -p packages/wasm/tsconfig.json
+  ./node_modules/.bin/tsc -p packages/cli/tsconfig.json
+
+packages-build:
+  cargo build -p nuparu-wasm --target wasm32-unknown-unknown --release
+  wasm-bindgen target/wasm32-unknown-unknown/release/nuparu_wasm.wasm --out-dir packages/wasm/dist --target web --no-typescript
+  ./node_modules/.bin/tsc -p packages/wasm/tsconfig.build.json
+  ./node_modules/.bin/tsc -p packages/cli/tsconfig.build.json
 
 test:
   cargo test --workspace
@@ -45,6 +55,7 @@ publish-crates:
   cargo publish -p nuparu-cli
 
 publish-npmjs:
+  just packages-build
   pnpm publish -r --filter "./packages/*"
 
 publish-vsce:

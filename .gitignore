@@ -6,4 +6,5 @@
 /vscode/nuparu-vscode/dist/
 /vscode/nuparu-vscode/node_modules/
 /vscode/nuparu-vscode/*.vsix
+/packages/*/dist/
 /.pnpm-store/

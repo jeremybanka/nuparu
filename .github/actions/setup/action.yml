@@ -12,6 +12,10 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile
 
+    - name: Install wasm-bindgen
+      shell: bash
+      run: cargo install --locked wasm-bindgen-cli --version 0.2.121
+
     - name: Configure Git
       shell: bash
       run: |

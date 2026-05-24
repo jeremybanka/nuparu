@@ -1152,6 +1152,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "nuparu-wasm"
+version = "0.1.0"
+dependencies = [
+ "nuparu-core",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "objc2-core-foundation"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,0 +1,32 @@
+{
+  "name": "@nuparu/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Thin npm CLI wrapper around the @nuparu/wasm formatter runtime.",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "package.json"
+  ],
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "nuparu": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@nuparu/wasm": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc -p tsconfig.json"
+  }
+}

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const versionSourcePath = "vscode/nuparu-vscode/package.json";
+const versionSourcePath = "packages/cli/package.json";
 
 if (!fs.existsSync(path.join(root, versionSourcePath))) {
   throw new Error(`Missing version source manifest: ${versionSourcePath}`);

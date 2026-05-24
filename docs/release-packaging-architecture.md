@@ -27,8 +27,8 @@ crates/
   nuparu-cli           # Rust CLI binary
 
 packages/
-  nuparu-wasm          # npm package exposing WASM formatter API
-  nuparu               # npm CLI wrapper around nuparu-wasm
+  wasm                 # @nuparu/wasm packaged WASM formatter runtime
+  cli                  # @nuparu/cli npm CLI wrapper around @nuparu/wasm
 
 vscode/
   nuparu-vscode        # VS Code extension
@@ -45,7 +45,7 @@ dprint/
 - pure Rust library
 - shared by:
   - `nuparu-cli`
-  - `nuparu-wasm`
+  - `@nuparu/wasm`
   - `nuparu-dprint`
 
 ### `nuparu-cli`
@@ -59,22 +59,22 @@ dprint/
 - may optionally ship GitHub release binaries
 - defines the stable stdin/stdout contract used by editor integrations
 
-### `nuparu-wasm`
+### `@nuparu/wasm`
 
-- programmatic npm API
-- generated from `nuparu-core`
+- programmatic Node API
 - intended for:
-  - browser/editor experiments
   - programmatic Node usage
-  - future web integrations
+  - JavaScript tooling integrations
+- ships the WASM-compiled formatter runtime
+- consumed by `@nuparu/cli`
 - not required by the VS Code extension
 
-### `nuparu` (npm CLI)
+### `@nuparu/cli`
 
-- lightweight Node wrapper around `nuparu-wasm`
+- lightweight Node wrapper around `@nuparu/wasm`
 - enables:
-  - `npx nuparu`
-  - npm/pnpm/bun installs
+  - `npx @nuparu/cli`
+  - npm/pnpm/bun installs that expose a `nuparu` command
 - secondary delivery path for JavaScript-centric users
 
 ### `nuparu-vscode`
@@ -88,7 +88,7 @@ dprint/
   - common install locations such as Cargo user bins
   - local development builds during repo work
 - should not bundle platform-native formatter binaries
-- should not depend on `nuparu-wasm` for normal formatting
+- should not depend on `@nuparu/wasm` for normal formatting
 
 ### `nuparu-dprint`
 
@@ -128,8 +128,8 @@ Use one shared version across all public artifacts:
 ```text
 nuparu-core      0.8.0
 nuparu-cli       0.8.0
-nuparu-wasm      0.8.0
-nuparu           0.8.0
+@nuparu/wasm     0.8.0
+@nuparu/cli      0.8.0
 nuparu-vscode    0.8.0
 nuparu-dprint    0.8.0
 ```
@@ -239,12 +239,12 @@ Implementation should happen in stages:
 3. Move the VS Code extension into the unified workspace without changing its
    runtime model.
 4. Add version sync and publish scripts for Rust, npm, VS Code, and dprint.
-5. Add `nuparu-wasm` as an optional integration target.
+5. Add `@nuparu/wasm` and `@nuparu/cli` as optional JavaScript integration targets.
 6. Add `nuparu-dprint` once the desired plugin shape is settled.
 
 ## Non-Goals For The Initial Packaging Pass
 
 - bundling native formatter binaries inside the VS Code extension
 - downloading formatter binaries on extension install
-- making the extension depend on a WASM runtime for standard formatting
+- making the extension depend on a JavaScript runtime wrapper for standard formatting
 - requiring all ecosystem targets to exist before the first coordinated release
