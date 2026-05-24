@@ -15,8 +15,10 @@
   "license": "MIT",
   "author": "jeremybanka",
   "publisher": "jeremybanka",
+  "icon": "icon.png",
   "files": [
     "dist",
+    "icon.png",
     "README.md",
     "package.json"
   ],
