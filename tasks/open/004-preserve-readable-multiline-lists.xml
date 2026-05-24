@@ -1,0 +1,27 @@
+<task>
+  <id>004</id>
+  <status>open</status>
+  <priority>P1</priority>
+  <title>Preserve readable multiline formatting for dense list literals</title>
+  <summary>
+    Large list literals are being compacted purely because they fit under the
+    line width.
+  </summary>
+  <problem>
+    The formatter lacks a readability threshold for list literals. Arrays of
+    flags and long filename lists in the fixtures become dense one-liners even
+    though the project guidance prefers multiline formatting for larger lists.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scrubs/bootstrap.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>docs/rejoining-strategy.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Dense or long list literals can remain multiline even if they technically fit under the width limit.</criterion>
+    <criterion>Short simple lists may still compact when that improves readability.</criterion>
+    <criterion>Regression coverage includes the ssh/scp flag lists and the Nushell config filename list from the scrubs bootstrap fixture.</criterion>
+  </acceptanceCriteria>
+</task>
