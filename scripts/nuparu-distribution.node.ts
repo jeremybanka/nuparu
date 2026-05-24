@@ -32,7 +32,9 @@ const [command, value] = process.argv.slice(2);
 switch (command) {
   case "set":
     if (!value) {
-      fail("Missing distribution. Usage: node ./scripts/nuparu-distribution.ts set <cargo|npm>");
+      fail(
+        "Missing distribution. Usage: node ./scripts/nuparu-distribution.node.ts set <cargo|npm>",
+      );
     }
 
     writeDistribution(value);
@@ -41,5 +43,5 @@ switch (command) {
     console.log(readDistribution());
     break;
   default:
-    fail("Usage: node ./scripts/nuparu-distribution.ts <set|which> [cargo|npm]");
+    fail("Usage: node ./scripts/nuparu-distribution.node.ts <set|which> [cargo|npm]");
 }

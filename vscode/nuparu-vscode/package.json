@@ -24,11 +24,12 @@
   ],
   "main": "./dist/extension.cjs",
   "scripts": {
-    "build": "vp pack && node package-vscode.ts",
+    "build": "vp pack && pnpm build:vscode",
+    "build:vscode": "node __scripts__/vscode-package.node.ts",
     "dev": "vp pack --watch",
     "check": "vp check",
     "test": "vp test",
-    "vscode:install": "pnpm build && node install-vscode.ts"
+    "vscode:install": "pnpm build && node __scripts__/vscode-install.node.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",

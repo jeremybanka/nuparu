@@ -17,11 +17,11 @@ install-vscode:
 u distribution:
     just use {{ distribution }}
 use distribution:
-    node ./scripts/nuparu-distribution.ts set {{ distribution }}
+    node ./scripts/nuparu-distribution.node.ts set {{ distribution }}
 w:
     just which
 which:
-    node ./scripts/nuparu-distribution.ts which
+    node ./scripts/nuparu-distribution.node.ts which
 
 r:
     just run
@@ -85,7 +85,7 @@ version:
 version-ts:
     pnpm exec changeset version
 version-crates:
-    node ./scripts/version-crates.ts
+    node ./scripts/version-crates.node.ts
 
 # SEND TO PUBLISHERS
 publish:

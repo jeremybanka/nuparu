@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const packageDir = import.meta.dirname;
+const packageDir = path.dirname(import.meta.dirname);
 const packageJsonPath = path.join(packageDir, "package.json");
 
 if (!fs.existsSync(packageJsonPath)) {
