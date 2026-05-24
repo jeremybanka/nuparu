@@ -44,11 +44,7 @@ fs.writeFileSync(
 const vsixPath = path.join(packageDir, `${manifest.name}-${manifest.version}.vsix`);
 const vscePath = path.join(packageDir, "node_modules/.bin/vsce");
 
-childProcess.execFileSync(
-  vscePath,
-  ["package", "--allow-missing-repository", "--out", vsixPath],
-  {
-    cwd: stagingDir,
-    stdio: "inherit",
-  },
-);
+childProcess.execFileSync(vscePath, ["package", "--allow-missing-repository", "--out", vsixPath], {
+  cwd: stagingDir,
+  stdio: "inherit",
+});

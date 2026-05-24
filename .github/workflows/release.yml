@@ -36,4 +36,3 @@ jobs:
           publish: just publish
           version: just version
           github-token: ${{ steps.app-token.outputs.token }}
-

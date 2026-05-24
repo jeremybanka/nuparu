@@ -3,9 +3,9 @@ set shell := ["zsh", "-cu"]
 default:
   @just --list
 
-
 # USE FROM SOURCE
 i:
+  just install
 install:
   just install-vscode
 install-vscode:
@@ -13,55 +13,51 @@ install-vscode:
 install-cargo:
   cargo install --path ./packages/cli
 r:
+    just run
 run:
   cargo run -p nuparu-cli --bin nuparu
 
 # TEST
 t:
+  just test
 test:
   just test-cargo
   just test-ts
-tc:
 test-cargo:
   cargo test --workspace --all-features
-tt:
 test-ts:
   pnpm exec vp run -r test
 
 # STATIC ANALYSIS
 f:
+  just fmt
 fmt:
   just fmt-vp
-fc:
 fmt-cargo:
   cargo fmt --all
-fv:
 fmt-vp:
   pnpm exec vp fmt
 c:
+  just check
 check:
   just check-cargo
   just check-clippy
   just check-vp
-cv:
 check-vp:
   pnpm exec vp check
-cc:
 check-cargo:
   cargo check --workspace
-cl:
 check-clippy:
   cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 # BUILD SYSTEM
 b:
+  just build
 build:
   just build-cargo
   just build-vp
-bc:
 build-cargo:
   cargo build --workspace
-bt:
 build-ts:
   just build-vp
   just build-vscode
@@ -72,6 +68,7 @@ build-vscode:
 
 # RELEASE SYSTEM
 n:
+  just notes
 notes:
   pnpm exec changeset
 
@@ -87,18 +84,17 @@ version-crates:
 # SEND TO PUBLISHERS
 publish:
   just publish-crates
-  just publish-npmjs
-  just publish-vsce
+  just publish-npm
+  just publish-vscode
   just publish-dprint
 publish-crates:
   cargo publish -p nuparu-core
   cargo publish -p nuparu-cli
-publish-npmjs:
+publish-npm:
   just packages-build
   pnpm publish -r --filter "./packages/*"
-publish-vsce:
+publish-vscode:
   just vscode-build
   pnpm --filter nuparu-vscode exec vsce publish
 publish-dprint:
   echo "nuparu-dprint publish is not wired yet; skipping."
-
