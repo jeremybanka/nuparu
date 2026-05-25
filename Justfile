@@ -8,7 +8,7 @@ i:
     just install
 install:
     just install-cargo
-    just install-vscode
+    command -v code && just install-vscode
 install-cargo:
     cargo install --path ./crates/nuparu-cli
 install-vscode:
