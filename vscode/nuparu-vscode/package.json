@@ -25,12 +25,11 @@
   "type": "module",
   "main": "./dist/extension.cjs",
   "scripts": {
-    "build": "vp pack",
-    "visx": "pnpm run build && node __scripts__/vscode-package.node.ts",
     "dev": "vp pack --watch",
     "check": "vp check",
     "test": "vp test",
-    "vscode:install": "pnpm run visx && node __scripts__/vscode-install.node.ts"
+    "vscode:install": "node __scripts__/vscode-install.node.ts",
+    "vscode:publish": "vsce publish"
   },
   "devDependencies": {
     "@types/node": "catalog:",
@@ -80,7 +79,6 @@
     }
   },
   "activationEvents": [
-    "onCommand:nuparu.formatDocument",
     "onLanguage:nushell"
   ],
   "icon": "icon.png",

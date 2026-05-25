@@ -15,13 +15,19 @@ Build the extension with:
 
 ```bash
 pnpm install
-pnpm build
+vp run build
 ```
 
-Package a VSIX with:
+That build also produces the installable VSIX. If you want the explicit packaging command:
 
 ```bash
 pnpm run package
+```
+
+Install the packaged extension locally with:
+
+```bash
+pnpm run vscode:install
 ```
 
 ## Settings

@@ -12,7 +12,8 @@ install:
 install-cargo:
     cargo install --path ./crates/nuparu-cli
 install-vscode:
-    pnpm --filter nuparu-vscode vscode:install
+    just build-vscode
+    pnpm -r vscode:install
 
 u distribution:
     just use {{ distribution }}
@@ -74,6 +75,10 @@ build-cargo:
     cargo build --workspace
 build-ts:
     pnpm exec vp run -r build
+build-vscode:
+    pnpm exec vp run --filter "./vscode/*..." build
+build-npm:
+    pnpm exec vp run --filter "./packages/*..." build
 
 # RELEASE SYSTEM
 n:
@@ -95,15 +100,12 @@ publish:
     just publish-crates
     just publish-npm
     just publish-vscode
-    just publish-dprint
 publish-crates:
     cargo publish -p nuparu-core
     cargo publish -p nuparu-cli
 publish-npm:
-    just build-ts 
-    pnpm publish -r --filter "./packages/*"
+    just build-npm
+    pnpm -r publish --filter "./packages/*"
 publish-vscode:
-    pnpm --filter nuparu-vscode exec vsce package
-    pnpm --filter nuparu-vscode exec vsce publish
-publish-dprint:
-    echo "nuparu-dprint publish is not wired yet; skipping."
+    just build-vscode
+    pnpm -r vscode:publish 
