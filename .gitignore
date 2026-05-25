@@ -8,6 +8,7 @@
 /vscode/nuparu-vscode/*.vsix
 /vscode/nuparu-vscode/vsix/*.vsix
 /packages/*/dist/
+/packages/*/target/
 /packages/*/node_modules/
 /.pnpm-store/
 /.turbo/

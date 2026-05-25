@@ -20,10 +20,10 @@
     "access": "public"
   },
   "scripts": {
-    "build:rust": "mise exec rust -- cargo build -p nuparu-wasm --target wasm32-unknown-unknown --release",
-    "build:bindings": "mise exec cargo:wasm-bindgen-cli -- wasm-bindgen ../../target/wasm32-unknown-unknown/release/nuparu_wasm.wasm --out-dir dist --target web --no-typescript",
-    "build:typescript": "tsc -p tsconfig.build.json",
-    "build": "pnpm run build:rust && pnpm run build:bindings && pnpm run build:typescript"
+    "build:rust": "vp run rust-build",
+    "build:bindings": "vp run bindings-build",
+    "build:typescript": "vp run typescript-build",
+    "build": "vp run build-task"
   },
   "devDependencies": {
     "@types/node": "catalog:",
