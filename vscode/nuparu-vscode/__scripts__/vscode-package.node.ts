@@ -10,10 +10,13 @@ if (!fs.existsSync(packageJsonPath)) {
   throw new Error(`Missing VS Code extension manifest: ${packageJsonPath}`);
 }
 
-const manifest = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as {
+const { devDependencies: _, ...manifest } = JSON.parse(
+  fs.readFileSync(packageJsonPath, "utf8"),
+) as {
   name: string;
   version: string;
   files?: string[];
+  devDependencies?: unknown;
 };
 const vsixDir = path.join(packageDir, "vsix");
 
@@ -30,21 +33,12 @@ for (const relativePath of manifest.files ?? []) {
   fs.cpSync(sourcePath, destinationPath, { recursive: true, dereference: true });
 }
 
-const stagedManifest = {
-  ...manifest,
-};
+fs.writeFileSync(path.join(stagingDir, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
-delete (stagedManifest as { devDependencies?: unknown }).devDependencies;
-
-fs.writeFileSync(
-  path.join(stagingDir, "package.json"),
-  `${JSON.stringify(stagedManifest, null, 2)}\n`,
-);
-
-const vsixPath = path.join(vsixDir, `${manifest.name}-${manifest.version}.vsix`);
+const vsixPath = path.join(vsixDir, `nuparu.vsix`);
 const vscePath = path.join(packageDir, "node_modules/.bin/vsce");
 
-childProcess.execFileSync(vscePath, ["package", "--allow-missing-repository", "--out", vsixPath], {
+childProcess.execFileSync(vscePath, ["package", "--out", vsixPath], {
   cwd: stagingDir,
   stdio: "inherit",
 });

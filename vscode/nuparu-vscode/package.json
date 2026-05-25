@@ -14,6 +14,11 @@
   ],
   "license": "MIT",
   "author": "jeremybanka",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeremybanka/nuparu",
+    "directory": "vscode/nuparu"
+  },
   "publisher": "jeremybanka",
   "files": [
     "dist",
@@ -29,7 +34,7 @@
     "check": "vp check",
     "test": "vp test",
     "vscode:install": "node __scripts__/vscode-install.node.ts",
-    "vscode:publish": "vsce publish"
+    "vscode:publish": "vsce publish --packagePath vsix/nuparu.vsix"
   },
   "devDependencies": {
     "@types/node": "catalog:",
