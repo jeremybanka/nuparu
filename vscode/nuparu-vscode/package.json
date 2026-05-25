@@ -1,5 +1,5 @@
 {
-  "name": "nuparu-vscode",
+  "name": "nuparu",
   "displayName": "nuparu",
   "version": "0.1.0",
   "description": "Format Nushell files with nuparu.",
