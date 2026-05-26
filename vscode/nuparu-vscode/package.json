@@ -1,0 +1,94 @@
+{
+  "name": "nuparu",
+  "displayName": "nuparu",
+  "version": "0.1.0",
+  "description": "Format Nushell files with nuparu.",
+  "categories": [
+    "Formatters"
+  ],
+  "keywords": [
+    "formatter",
+    "nu",
+    "nuparu",
+    "nushell"
+  ],
+  "license": "MIT",
+  "author": "jeremybanka",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeremybanka/nuparu",
+    "directory": "vscode/nuparu"
+  },
+  "publisher": "jeremybanka",
+  "files": [
+    "dist",
+    "icon.png",
+    "LICENSE",
+    "README.md",
+    "package.json"
+  ],
+  "type": "module",
+  "main": "./dist/extension.cjs",
+  "scripts": {
+    "dev": "vp pack --watch",
+    "check": "vp check",
+    "test": "vp test",
+    "vscode:install": "node __scripts__/vscode-install.node.ts",
+    "vscode:publish": "vsce publish --packagePath vsix/nuparu.vsix"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/vscode": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "@vscode/vsce": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "nushell",
+        "aliases": [
+          "Nushell",
+          "nushell"
+        ],
+        "extensions": [
+          ".nu"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "nuparu.formatDocument",
+        "title": "Format Current Nushell File",
+        "category": "nuparu"
+      }
+    ],
+    "configuration": {
+      "title": "nuparu",
+      "properties": {
+        "nuparu.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the nuparu executable. Leave empty to auto-discover common locations."
+        },
+        "nuparu.extraArgs": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional arguments passed to nuparu."
+        }
+      }
+    }
+  },
+  "activationEvents": [
+    "onLanguage:nushell"
+  ],
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "packageManager": "pnpm@11.1.2"
+}

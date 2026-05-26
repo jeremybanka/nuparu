@@ -1,13 +1,48 @@
 {
+  // Nushell
   "[nushell]": {
     "editor.defaultFormatter": "jeremybanka.nuparu",
     "editor.formatOnSave": true
   },
+  // Route through the workspace launcher so editors stay pinned to this repo's builds.
+  "nuparu.path": "bin/nuparu",
+
+  // Just
+  "[just]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "nefrob.vscode-just-syntax"
+  },
+  "vscode-just.justPath": ".vscode/bin/just",
+  "vscode-just.lspPath": ".vscode/bin/just-lsp",
+
+  // Rust
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
     "editor.formatOnSave": true
   },
   "rust-analyzer.cargo.allTargets": true,
   "rust-analyzer.check.command": "clippy",
-  "rust-analyzer.procMacro.enable": true
+  "rust-analyzer.procMacro.enable": true,
+
+  // TOML
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  },
+
+  // OXC
+  "[typescript][json][jsonc][yaml][yml]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll.oxc": "always"
+    },
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file"
+  },
+  "oxc.configPath": "./vite.config.ts",
+  "oxc.enable.oxfmt": true,
+  "oxc.enable.oxlint": true,
+  "oxc.fmt.configPath": "./vite.config.ts",
+  "oxc.lint.run": "onType",
+  "oxc.path.oxfmt": ".vscode/bin/oxfmt",
+  "oxc.path.oxlint": ".vscode/bin/oxlint"
 }

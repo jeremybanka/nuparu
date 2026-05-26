@@ -1,0 +1,30 @@
+<task>
+  <id>008</id>
+  <status>review</status>
+  <priority>P1</priority>
+  <title>Decide and codify simple catch-clause compaction style</title>
+  <summary>
+    Simple `catch {|err| ... }` clauses currently compact into a dense ending
+    like `} catch {|err| print ... } }`, which the review found readable enough
+    to parse but visually poor.
+  </summary>
+  <problem>
+    This is a non-breaking style question. We need a definitive answer on
+    whether simple catch closures should compact inline, whether the trailing
+    block close should stay separated, or whether catch clauses should prefer a
+    multiline style even for short bodies.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/configure-apps.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>docs/rejoining-strategy.md</path>
+    <path>tasks/review/0001-0004.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Choose one policy for short catch clauses and encode it in regression tests.</criterion>
+    <criterion>The chosen output for the configure-apps.nu catch shape is explicit and stable.</criterion>
+    <criterion>The policy distinguishes catch formatting from the separate multistatement-closure rules when necessary.</criterion>
+  </acceptanceCriteria>
+</task>

@@ -1,0 +1,28 @@
+<task>
+  <id>002</id>
+  <status>review</status>
+  <priority>P0</priority>
+  <title>Preserve multiline formatting for closures with statement bodies</title>
+  <summary>
+    Closure compaction is flattening real statement blocks into one-liners.
+  </summary>
+  <problem>
+    The formatter currently rejoins closure heads, bodies, and closing braces
+    without checking whether the closure body is a single short expression or a
+    multi-statement block. This breaks readability and interacts badly with
+    nested if/else logic and let bindings inside closures.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/configure-apps.nu</file>
+    <file>fixtures/dotfiles/scripts/upgrade-workflows.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>docs/rejoining-strategy.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Closures with multiple statements remain multiline.</criterion>
+    <criterion>Simple closures like each {|line| $line | str trim } may still compact when they fit.</criterion>
+    <criterion>catch, each, reduce, and similar closures with let or if statements inside them keep a structured multiline form.</criterion>
+  </acceptanceCriteria>
+</task>

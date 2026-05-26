@@ -1,0 +1,34 @@
+{
+  "name": "@nuparu/wasm",
+  "version": "0.1.0",
+  "description": "WASM-powered Node API for the nuparu formatter.",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "package.json"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build:rust": "vp run rust-build",
+    "build:bindings": "vp run bindings-build",
+    "build:typescript": "vp run typescript-build",
+    "build": "vp run build-task"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

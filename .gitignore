@@ -1,5 +1,15 @@
 /target/
+/node_modules/
 /vscode/dist/
 /vscode/node_modules/
 /vscode/*.vsix
+/vscode/nuparu-vscode/dist/
+/vscode/nuparu-vscode/node_modules/
+/vscode/nuparu-vscode/*.vsix
+/vscode/nuparu-vscode/vsix/*.vsix
+/packages/*/dist/
+/packages/*/target/
+/packages/*/node_modules/
 /.pnpm-store/
+/.turbo/
+/.nuparu-distribution

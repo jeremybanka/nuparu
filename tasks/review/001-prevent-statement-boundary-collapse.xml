@@ -1,0 +1,36 @@
+<task>
+  <id>001</id>
+  <status>open</status>
+  <priority>P0</priority>
+  <title>Prevent statement-boundary collapse during rejoining</title>
+  <summary>
+    The formatter currently rejoins newline-separated commands as if later lines
+    were argument continuations of the previous command.
+  </summary>
+  <problem>
+    The command continuation heuristic in crates/nuparu-core/src/formatter.rs is
+    too permissive. It collapses distinct statements like print + return, mkdir
+    + cp, and print + mut into one line, which changes the structure and often
+    the meaning of the code.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/configure-apps.nu</file>
+    <file>fixtures/dotfiles/scripts/lima-ports.nu</file>
+    <file>fixtures/dotfiles/scripts/watch-helix-config.nu</file>
+    <file>fixtures/dotfiles/scrubs/bootstrap.nu</file>
+    <file>fixtures/dotfiles/scrubs/download-latest-iso.nu</file>
+    <file>fixtures/dotfiles/scrubs/refresh-base-image.nu</file>
+    <file>fixtures/dotfiles/scrubs/seed.nu</file>
+    <file>fixtures/dotfiles/scrubs/sync-base-image-from-icloud.nu</file>
+    <file>fixtures/dotfiles/scrubs/sync-base-image-to-icloud.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>docs/rejoining-strategy.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>The formatter does not merge adjacent top-level or block-level statements unless they are a real continuation of the same command.</criterion>
+    <criterion>Cases like print + return, rm + mkdir, mkdir + cp, print + mut, and print + do remain on separate lines.</criterion>
+    <criterion>New regression tests cover the failing fixture patterns, not just synthetic two-line examples.</criterion>
+  </acceptanceCriteria>
+</task>

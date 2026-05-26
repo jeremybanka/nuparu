@@ -1,0 +1,37 @@
+packages:
+  - "packages/*"
+  - "vscode/*"
+  - "dprint/*"
+
+catalogMode: prefer
+blockExoticSubdeps: true
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - "@typescript/*"
+
+catalog:
+  "@changesets/cli": 2.31.0
+  "@types/node": 25.9.1
+  "@types/vscode": 1.100.0
+  "@typescript/native-preview": 7.0.0-dev.20260523.1
+  "@vscode/vsce": 3.9.1
+  typescript: 6.0.3
+  vite: npm:@voidzero-dev/vite-plus-core@0.1.22
+  vitest: npm:@voidzero-dev/vite-plus-test@0.1.22
+  vite-plus: 0.1.22
+
+overrides:
+  vite: "catalog:"
+  vitest: "catalog:"
+
+peerDependencyRules:
+  allowAny:
+    - vite
+    - vitest
+  allowedVersions:
+    vite: "*"
+    vitest: "*"
+
+allowBuilds:
+  "@vscode/vsce-sign": false
+  keytar: false

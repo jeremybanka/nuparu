@@ -25,8 +25,11 @@ This repo uses:
 
 - `mise` for toolchain management
 - `just` for common project tasks
+- `pnpm` workspaces with shared catalogs for the TypeScript monorepo
+- `vite-plus` to orchestrate TypeScript formatting, linting, builds, and tests
 - Rust for the formatter binary
-- a TypeScript + `tsdown` VS Code extension in [`vscode/`](/Users/jem/dojo/nufmt/vscode)
+- a TypeScript VS Code extension in
+  [`vscode/nuparu-vscode/`](/Users/jem/dojo/nuparu/vscode/nuparu-vscode)
 
 Install the toolchain:
 
@@ -43,6 +46,15 @@ just fmt
 just clippy
 ```
 
+TypeScript-specific workspace tasks:
+
+```bash
+just ts-check
+just ts-test
+just ts-build
+just ts-fmt
+```
+
 VS Code extension tasks:
 
 ```bash
@@ -56,13 +68,13 @@ just vscode-install
 Quick stdin/stdout usage:
 
 ```bash
-printf 'def greet [] {\nprint "hi"\n}\n' | cargo run --quiet
+printf 'def greet [] {\nprint "hi"\n}\n' | cargo run -p nuparu-cli --quiet --bin nuparu
 ```
 
 Install the binary to your user Cargo bin directory:
 
 ```bash
-cargo install --path . --force
+cargo install --path crates/nuparu-cli --force
 ```
 
 Then format through the installed executable:
@@ -85,12 +97,26 @@ aligned with Nushell's crate graph. The evaluation notes live in
 ## Editor integration
 
 There is already a VS Code-compatible extension under
-[vscode/README.md](/Users/jem/dojo/nufmt/vscode/README.md:1). It can:
+[vscode/nuparu-vscode/README.md](/Users/jem/dojo/nuparu/vscode/nuparu-vscode/README.md:1). It can:
 
 - format the current Nushell document
 - participate in normal editor formatting
 - discover `nuparu` automatically from common install locations such as
   `~/.cargo/bin/nuparu`
+
+In this workspace, VS Code and Helix are pinned to the repo-local launcher at
+`bin/nuparu` instead of whatever `nuparu` your shell exposes. That launcher
+defaults to the current Cargo build at `target/debug/nuparu`.
+
+You can switch the launcher between the two local distributables with:
+
+```bash
+just use cargo
+just use npm
+```
+
+The selector lives in `.nuparu-distribution`, which is intentionally ignored so
+you can flip it locally without creating git noise.
 
 Planned editor follow-up work is tracked in
 [docs/TODO.md](/Users/jem/dojo/nufmt/docs/TODO.md:1), including:
@@ -106,12 +132,12 @@ This repo now includes a project-local Helix override in
 It configures the built-in `nu` language to:
 
 - use `nu-lsp` as the language server
-- use `nuparu` as the formatter
+- use `./bin/nuparu` as the formatter
 - enable `auto-format`
 - use a `text-width` of `80`
 
-If `nuparu` is installed on your `PATH`, Helix should pick it up automatically
-for this workspace. You can verify that with:
+Helix uses the same repo-local launcher as VS Code, so it stays aligned with
+the selected distributable. You can verify that with:
 
 ```bash
 hx --health nu
