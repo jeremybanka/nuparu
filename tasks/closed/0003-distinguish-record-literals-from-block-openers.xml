@@ -1,6 +1,6 @@
 <task>
-  <id>003</id>
-  <status>review</status>
+  <id>0003</id>
+  <status>closed</status>
   <priority>P0</priority>
   <title>Distinguish record literals from block openers when joining braces</title>
   <summary>

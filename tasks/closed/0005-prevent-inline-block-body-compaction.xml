@@ -1,6 +1,6 @@
 <task>
-  <id>005</id>
-  <status>review</status>
+  <id>0005</id>
+  <status>closed</status>
   <priority>P0</priority>
   <title>Prevent inline compaction of plain block bodies after opening braces</title>
   <summary>

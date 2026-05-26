@@ -1,6 +1,6 @@
 <task>
-  <id>004</id>
-  <status>review</status>
+  <id>0004</id>
+  <status>closed</status>
   <priority>P1</priority>
   <title>Preserve readable multiline formatting for dense list literals</title>
   <summary>

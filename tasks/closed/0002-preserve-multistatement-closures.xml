@@ -1,6 +1,6 @@
 <task>
-  <id>002</id>
-  <status>review</status>
+  <id>0002</id>
+  <status>closed</status>
   <priority>P0</priority>
   <title>Preserve multiline formatting for closures with statement bodies</title>
   <summary>

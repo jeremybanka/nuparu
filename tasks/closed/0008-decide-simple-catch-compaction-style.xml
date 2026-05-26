@@ -1,6 +1,6 @@
 <task>
-  <id>008</id>
-  <status>review</status>
+  <id>0008</id>
+  <status>closed</status>
   <priority>P1</priority>
   <title>Decide and codify simple catch-clause compaction style</title>
   <summary>
