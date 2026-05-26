@@ -43,6 +43,7 @@ jobs:
         env:
           LOG_LEVEL: debug
           RENOVATE_ALLOW_PLUGINS: true
+          RENOVATE_ALLOWED_COMMANDS: '["^cargo update -p js-sys$"]'
           RENOVATE_REPOSITORIES: jeremybanka/nuparu
         with:
           configurationFile: renovate.json
