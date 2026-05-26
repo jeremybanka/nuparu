@@ -2,6 +2,6 @@
 name = "nu"
 auto-format = true
 language-servers = ["nu-lsp"]
-formatter = { command = "nuparu" }
+formatter = { command = "./bin/nuparu" }
 text-width = 80
 indent = { tab-width = 2, unit = "  " }

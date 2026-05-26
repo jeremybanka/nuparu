@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "erasableSyntaxOnly": false,
+    "paths": {
+      "@nuparu/wasm": ["../wasm/dist/index.d.ts"]
+    },
+    "outDir": "dist",
+    "rootDir": "src"
+  }
+}

@@ -1,0 +1,28 @@
+<task>
+  <id>003</id>
+  <status>review</status>
+  <priority>P0</priority>
+  <title>Distinguish record literals from block openers when joining braces</title>
+  <summary>
+    The formatter is treating some record literals as though they were control
+    flow or closure blocks.
+  </summary>
+  <problem>
+    Brace rejoining is too syntax-blind. A returned or assigned record literal
+    can be attached as if it were the start of a block, which produces malformed
+    or misleading layouts around let bindings and returned records.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/configure-apps.nu</file>
+    <file>fixtures/dotfiles/scripts/upgrade-workflows.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>docs/rejoining-strategy.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Record literals after let, return, or expression positions are formatted as records, not as block openers.</criterion>
+    <criterion>Control-flow and closure block opener rejoining still works where appropriate.</criterion>
+    <criterion>Regression tests cover returned records and records following let bindings inside closures.</criterion>
+  </acceptanceCriteria>
+</task>

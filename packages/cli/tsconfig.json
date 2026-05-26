@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@nuparu/wasm": ["../wasm/src/index.ts"]
+    },
+    "types": ["node"]
+  },
+  "include": ["src", "__tests__/**/*.ts", "vite.config.ts"]
+}

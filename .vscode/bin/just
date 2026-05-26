@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+self_path="$script_dir/just"
+
+if command -v just >/dev/null 2>&1; then
+  found_just=$(command -v just)
+  if [ "$found_just" != "$self_path" ]; then
+    exec "$found_just" "$@"
+  fi
+fi
+
+if [ -x "$HOME/.cargo/bin/just" ]; then
+  exec "$HOME/.cargo/bin/just" "$@"
+fi
+
+mise_root="$HOME/.local/share/mise/installs/just"
+if [ -d "$mise_root" ]; then
+  mise_just=$(
+    find "$mise_root" -path '*/just' -type f 2>/dev/null | sort | tail -n 1
+  )
+  if [ -n "${mise_just:-}" ] && [ -x "$mise_just" ]; then
+    exec "$mise_just" "$@"
+  fi
+fi
+
+printf '%s\n' "Unable to find just. Install it with mise or cargo, then reopen VS Code." >&2
+exit 1

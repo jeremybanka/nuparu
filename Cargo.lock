@@ -1132,16 +1132,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "nuparu"
+name = "nuparu-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "dprint-core",
+ "nuparu-core",
+ "tokio",
+]
+
+[[package]]
+name = "nuparu-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
  "nu-parser",
  "nu-protocol",
  "serde",
- "serde_json",
- "tokio",
+]
+
+[[package]]
+name = "nuparu-wasm"
+version = "0.1.0"
+dependencies = [
+ "nuparu-core",
+ "wasm-bindgen",
 ]
 
 [[package]]
