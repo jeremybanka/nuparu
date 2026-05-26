@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "group:rust-wasm-bindgenMonorepo"],
+  "extends": ["config:recommended"],
   "branchConcurrentLimit": 1,
   "prHourlyLimit": 10,
   "minimumReleaseAge": "1 day",
@@ -17,6 +17,15 @@
     }
   ],
   "packageRules": [
+    {
+      "description": "Refresh transitive js-sys so Cargo can resolve wasm-bindgen lockfile updates",
+      "matchManagers": ["cargo"],
+      "matchDepNames": ["wasm-bindgen"],
+      "postUpgradeTasks": {
+        "commands": ["cargo update -p js-sys"],
+        "executionMode": "branch"
+      }
+    },
     {
       "groupName": "nushell parser packages",
       "matchManagers": ["cargo"],
