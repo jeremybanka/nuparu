@@ -1,9 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    "group:rust-wasm-bindgenMonorepo"
-  ],
+  "extends": ["config:recommended", "group:rust-wasm-bindgenMonorepo"],
   "branchConcurrentLimit": 1,
   "prHourlyLimit": 10,
   "minimumReleaseAge": "1 day",
