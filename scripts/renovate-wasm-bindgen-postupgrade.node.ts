@@ -1,6 +1,8 @@
+import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 
 const JS_SYS_PATCH_OFFSET = 23;
+const MISE_TOML_PATH = "mise.toml";
 
 function fail(message: string): never {
   console.error(message);
@@ -51,10 +53,37 @@ function runCargo(args: string[], dryRun: boolean): void {
   });
 }
 
-const [_currentVersion, nextVersion, maybeDryRun] = process.argv.slice(2);
+function updatePinnedCliVersion(
+  currentVersion: string,
+  nextVersion: string,
+  dryRun: boolean,
+): void {
+  const before = fs.readFileSync(MISE_TOML_PATH, "utf8");
+  const currentLine = `"cargo:wasm-bindgen-cli" = "${currentVersion}"`;
+  const nextLine = `"cargo:wasm-bindgen-cli" = "${nextVersion}"`;
+
+  if (before.includes(nextLine)) {
+    console.log(`wasm-bindgen-cli already pinned to ${nextVersion}.`);
+    return;
+  }
+
+  if (!before.includes(currentLine)) {
+    fail(`Could not find ${currentLine} in ${MISE_TOML_PATH}`);
+  }
+
+  if (dryRun) {
+    console.log(`update ${MISE_TOML_PATH}: ${currentLine} -> ${nextLine}`);
+    return;
+  }
+
+  fs.writeFileSync(MISE_TOML_PATH, before.replace(currentLine, nextLine));
+  console.log(`Pinned wasm-bindgen-cli ${nextVersion} in ${MISE_TOML_PATH}.`);
+}
+
+const [currentVersion, nextVersion, maybeDryRun] = process.argv.slice(2);
 const dryRun = maybeDryRun === "--dry-run";
 
-if (!_currentVersion || !nextVersion) {
+if (!currentVersion || !nextVersion) {
   fail(
     "Usage: node ./scripts/renovate-wasm-bindgen-postupgrade.node.ts <current-version> <next-version> [--dry-run]",
   );
@@ -63,6 +92,8 @@ if (!_currentVersion || !nextVersion) {
 const jsSysVersion = jsSysVersionForWasmBindgen(nextVersion);
 
 console.log(`Aligning js-sys ${jsSysVersion} with wasm-bindgen ${nextVersion}.`);
+
+updatePinnedCliVersion(currentVersion, nextVersion, dryRun);
 
 runCargo(
   ["update", "--config", "net.git-fetch-with-cli=true", "-p", "js-sys", "--precise", jsSysVersion],
