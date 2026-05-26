@@ -1,0 +1,33 @@
+<task>
+  <id>0012</id>
+  <status>open</status>
+  <priority>P1</priority>
+  <title>Preserve line boundaries before reserved statement keywords</title>
+  <summary>
+    A small remaining class of fixture diffs shows the formatter joining a prior
+    expression line with a following line that begins with a reserved statement
+    keyword such as `return` or `mut`.
+  </summary>
+  <problem>
+    Some line joins are genuinely ambiguous and should be pardoned, but not all
+    of them are. When a following line begins with a reserved statement head
+    that cannot safely act as a normal continuation of the previous line, the
+    formatter has enough syntactic knowledge to keep the boundary. The current
+    behavior still joins at least a `print`-then-`return` shape and a
+    `print`-then-`mut` shape in the floating fixtures.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/lima-ports.nu</file>
+    <file>fixtures/dotfiles/scrubs/bootstrap.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>crates/nuparu-core/src/__tests__/formatter.rs</path>
+    <path>tasks/open/0011-finish-higher-order-whitespace-normalization.xml</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>A line ending in an expression is not joined with a following line that begins with reserved statement heads like `return` or `mut` when those tokens cannot validly continue the prior statement.</criterion>
+    <criterion>The remaining floating fixture diffs in `lima-ports.nu` and `bootstrap.nu` disappear after formatting.</criterion>
+    <criterion>New regression tests for this behavior are derived from the real fixture shapes rather than only synthetic one-liners.</criterion>
+  </acceptanceCriteria>
+</task>

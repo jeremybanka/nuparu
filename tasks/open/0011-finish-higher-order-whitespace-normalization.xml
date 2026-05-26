@@ -2,33 +2,26 @@
   <id>0011</id>
   <status>open</status>
   <priority>P1</priority>
-  <title>Finish higher-order whitespace normalization gaps exposed by floating fixtures</title>
+  <title>Normalize grouped-expression and closure layout</title>
   <summary>
-    The first whitespace-normalization pass fixed the checked-in regressions, but
-    eight real fixtures still show stable post-format residue in higher-order
-    shapes such as statement joining, interpolation spacing, and multiline string
-    body handling.
+    The first whitespace-normalization pass fixed the checked-in regressions, and
+    after pardoning non-formatter-scope cases the remaining fixture residue is
+    concentrated in multiline closure and pipeline layout choices that the
+    formatter should own explicitly.
   </summary>
   <problem>
-    After re-running `nuparu --write` against the intentionally dirtied fixture
-    corpus, the remaining diffs are no longer broad indentation noise. They are
-    concentrated in a smaller set of semantic-looking formatting failures:
-    neighboring commands still collapse onto one line in a few control-flow and
-    reporting shapes, repeated spaces survive inside interpolated strings and
-    regex-like literals where they should probably collapse, and embedded
-    multiline string bodies are being normalized when they appear to need
-    verbatim preservation. These cases are visible directly in the floating
-    fixture diffs and should disappear as the formatter implementation improves.
+    The remaining floating fixture diffs are no longer about verbatim string
+    payloads or ambiguous statement reconstruction. They are about the
+    formatter's layout opinion for multiline closures, grouped expressions, and
+    nearby pipeline tails. In several places the formatter produces stable but
+    undesired rewrites such as pulling `| compact` onto the same line as a
+    closing closure brace or collapsing multiline grouped-return shapes into
+    awkward layouts. These are style decisions the formatter can and should make
+    consistently.
   </problem>
   <affectedFiles>
     <file>fixtures/dotfiles/scripts/configure-apps.nu</file>
-    <file>fixtures/dotfiles/scripts/lima-ports.nu</file>
     <file>fixtures/dotfiles/scripts/upgrade-workflows.nu</file>
-    <file>fixtures/dotfiles/scrubs/bootstrap.nu</file>
-    <file>fixtures/dotfiles/scrubs/download-latest-iso.nu</file>
-    <file>fixtures/dotfiles/scrubs/seed.nu</file>
-    <file>fixtures/dotfiles/scrubs/sync-base-image-from-icloud.nu</file>
-    <file>fixtures/dotfiles/scrubs/sync-base-image-to-icloud.nu</file>
   </affectedFiles>
   <relatedCode>
     <path>crates/nuparu-core/src/formatter.rs</path>
@@ -36,9 +29,9 @@
     <path>tasks/review/0010-normalize-whitespace-noise-in-fixtures.xml</path>
   </relatedCode>
   <acceptanceCriteria>
-    <criterion>Whitespace-only noise does not collapse distinct neighboring commands like adjacent function calls, `print` plus `return`, or sequential setup commands onto the same line in the remaining fixture shapes.</criterion>
-    <criterion>Repeated spaces inside interpolated strings, regex-like string arguments, and similar inline string-bearing constructs are either normalized intentionally or preserved intentionally, with a clear rule that matches the desired style.</criterion>
-    <criterion>Embedded multiline string bodies that represent foreign source text or shell scripts are preserved verbatim enough that formatter cleanup outside the string does not rewrite their internal spacing and indentation.</criterion>
-    <criterion>The floating fixture diffs for these eight files disappear after formatting, and any new regression tests added for them are derived from the observed fixture residue.</criterion>
+    <criterion>Multiline closures and grouped expressions keep a consistent formatter-owned layout instead of drifting into source-dependent brace and pipeline-tail arrangements.</criterion>
+    <criterion>Pipeline continuations such as `| compact` land in the preferred structural position relative to closure bodies and closing braces.</criterion>
+    <criterion>Return-style grouped multiline expressions are formatted into an intentional house style rather than partially rejoined or awkwardly collapsed.</criterion>
+    <criterion>The remaining floating fixture diffs in `configure-apps.nu` and `upgrade-workflows.nu` disappear after formatting, and any new regression tests are drawn from those real fixture shapes.</criterion>
   </acceptanceCriteria>
 </task>
