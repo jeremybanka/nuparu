@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 
 const JS_SYS_PATCH_OFFSET = 23;
-const WASM_BINDGEN_MANIFEST_PATH = "crates/nuparu-wasm/Cargo.toml";
 
 function fail(message: string): never {
   console.error(message);
@@ -52,10 +51,10 @@ function runCargo(args: string[], dryRun: boolean): void {
   });
 }
 
-const [currentVersion, nextVersion, maybeDryRun] = process.argv.slice(2);
+const [_currentVersion, nextVersion, maybeDryRun] = process.argv.slice(2);
 const dryRun = maybeDryRun === "--dry-run";
 
-if (!currentVersion || !nextVersion) {
+if (!_currentVersion || !nextVersion) {
   fail(
     "Usage: node ./scripts/renovate-wasm-bindgen-postupgrade.node.ts <current-version> <next-version> [--dry-run]",
   );
@@ -67,20 +66,5 @@ console.log(`Aligning js-sys ${jsSysVersion} with wasm-bindgen ${nextVersion}.`)
 
 runCargo(
   ["update", "--config", "net.git-fetch-with-cli=true", "-p", "js-sys", "--precise", jsSysVersion],
-  dryRun,
-);
-
-runCargo(
-  [
-    "update",
-    "--config",
-    "net.git-fetch-with-cli=true",
-    "--manifest-path",
-    WASM_BINDGEN_MANIFEST_PATH,
-    "--package",
-    `wasm-bindgen@${currentVersion}`,
-    "--precise",
-    nextVersion,
-  ],
   dryRun,
 );
