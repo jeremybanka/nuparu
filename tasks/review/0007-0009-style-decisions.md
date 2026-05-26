@@ -1,9 +1,9 @@
-# Style Decisions for Tasks 007-009
+# Style Decisions for Tasks 0007-0009
 
 These decisions are now encoded in formatter regression tests in
 `crates/nuparu-core/src/formatter.rs`.
 
-## 007. Grouped Multiline Expressions
+## 0007. Grouped Multiline Expressions
 
 Chosen style:
 
@@ -34,7 +34,7 @@ return (
 ) | save --force $template_file
 ```
 
-## 008. Simple Catch Clauses
+## 0008. Simple Catch Clauses
 
 Chosen style:
 
@@ -50,7 +50,7 @@ try {
 }
 ```
 
-## 009. Multiline Command Call Heads
+## 0009. Multiline Command Call Heads
 
 Chosen style:
 

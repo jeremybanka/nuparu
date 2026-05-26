@@ -1,6 +1,6 @@
 <task>
-  <id>009</id>
-  <status>review</status>
+  <id>0009</id>
+  <status>closed</status>
   <priority>P2</priority>
   <title>Decide command-head compaction boundaries for uneven multiline call sites</title>
   <summary>

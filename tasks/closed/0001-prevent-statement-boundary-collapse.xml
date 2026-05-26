@@ -1,6 +1,6 @@
 <task>
-  <id>001</id>
-  <status>open</status>
+  <id>0001</id>
+  <status>closed</status>
   <priority>P0</priority>
   <title>Prevent statement-boundary collapse during rejoining</title>
   <summary>

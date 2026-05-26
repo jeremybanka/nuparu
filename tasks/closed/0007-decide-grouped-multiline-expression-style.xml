@@ -1,6 +1,6 @@
 <task>
-  <id>007</id>
-  <status>review</status>
+  <id>0007</id>
+  <status>closed</status>
   <priority>P1</priority>
   <title>Decide and codify grouped multiline expression opener style</title>
   <summary>
