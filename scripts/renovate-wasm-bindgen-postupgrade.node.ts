@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 
 const JS_SYS_PATCH_OFFSET = 23;
 const MISE_TOML_PATH = "mise.toml";
+const WASM_CARGO_TOML_PATH = "crates/nuparu-wasm/Cargo.toml";
 
 function fail(message: string): never {
   console.error(message);
@@ -80,6 +81,29 @@ function updatePinnedCliVersion(
   console.log(`Pinned wasm-bindgen-cli ${nextVersion} in ${MISE_TOML_PATH}.`);
 }
 
+function updateWasmCargoToml(currentVersion: string, nextVersion: string, dryRun: boolean): void {
+  const before = fs.readFileSync(WASM_CARGO_TOML_PATH, "utf8");
+  const currentLine = `wasm-bindgen = "${currentVersion}"`;
+  const nextLine = `wasm-bindgen = "${nextVersion}"`;
+
+  if (before.includes(nextLine)) {
+    console.log(`wasm-bindgen already pinned to ${nextVersion} in ${WASM_CARGO_TOML_PATH}.`);
+    return;
+  }
+
+  if (!before.includes(currentLine)) {
+    fail(`Could not find ${currentLine} in ${WASM_CARGO_TOML_PATH}`);
+  }
+
+  if (dryRun) {
+    console.log(`update ${WASM_CARGO_TOML_PATH}: ${currentLine} -> ${nextLine}`);
+    return;
+  }
+
+  fs.writeFileSync(WASM_CARGO_TOML_PATH, before.replace(currentLine, nextLine));
+  console.log(`Pinned wasm-bindgen ${nextVersion} in ${WASM_CARGO_TOML_PATH}.`);
+}
+
 const [currentVersion, nextVersion, maybeDryRun] = process.argv.slice(2);
 const dryRun = maybeDryRun === "--dry-run";
 
@@ -93,6 +117,7 @@ const jsSysVersion = jsSysVersionForWasmBindgen(nextVersion);
 
 console.log(`Aligning js-sys ${jsSysVersion} with wasm-bindgen ${nextVersion}.`);
 
+updateWasmCargoToml(currentVersion, nextVersion, dryRun);
 updatePinnedCliVersion(currentVersion, nextVersion, dryRun);
 
 runCargo(
