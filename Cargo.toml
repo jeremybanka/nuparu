@@ -9,7 +9,7 @@ edition = "2024"
 [workspace.dependencies]
 anyhow = "1.0.102"
 dprint-core = { version = "0.67.4", features = ["process"] }
-nu-parser = "=0.112.1"
+nu-parser = "=0.113.0"
 nu-protocol = { version = "=0.112.1", default-features = false }
 nuparu-core = { path = "crates/nuparu-core", version = "0.1.0" }
 serde = { version = "1.0.228", features = ["derive"] }
