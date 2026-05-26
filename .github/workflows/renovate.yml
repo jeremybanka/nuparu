@@ -43,7 +43,7 @@ jobs:
         env:
           LOG_LEVEL: debug
           RENOVATE_ALLOW_PLUGINS: true
-          RENOVATE_ALLOWED_COMMANDS: '["^cargo update -p js-sys$"]'
+          RENOVATE_ALLOWED_COMMANDS: '["^node \\./scripts/renovate-wasm-bindgen-postupgrade\\.node\\.ts [0-9]+\\.[0-9]+\\.[0-9]+ [0-9]+\\.[0-9]+\\.[0-9]+$"]'
           RENOVATE_REPOSITORIES: jeremybanka/nuparu
         with:
           configurationFile: renovate.json

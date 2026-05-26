@@ -18,12 +18,13 @@
   ],
   "packageRules": [
     {
-      "description": "Refresh transitive js-sys so Cargo can resolve wasm-bindgen lockfile updates",
+      "description": "Update the lockfile with the matching js-sys release before finalizing wasm-bindgen",
       "matchManagers": ["cargo"],
       "matchDepNames": ["wasm-bindgen"],
       "postUpgradeTasks": {
-        "commands": ["cargo update -p js-sys"],
-        "executionMode": "branch"
+        "commands": [
+          "node ./scripts/renovate-wasm-bindgen-postupgrade.node.ts {{{currentValue}}} {{{newVersion}}}"
+        ]
       }
     },
     {
