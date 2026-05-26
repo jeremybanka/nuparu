@@ -58,47 +58,43 @@ def main [--dry-run] {
   }
 
   let workflow_changes = (
-    $workflow_uses
-    | each { |workflow_use|
-        let update = (
-          $workflow_updates
-          | where group_key == (group-key $workflow_use.action_name $workflow_use.current_version)
-          | first
-        )
+    $workflow_uses | each { |workflow_use|
+      let update = (
+        $workflow_updates
+        | where group_key == (group-key $workflow_use.action_name $workflow_use.current_version)
+        | first
+      )
 
-        if (not $update.has_update) {
-          null
-        } else {
-          {
-            file_path: $workflow_use.file_path
-            line_index: $workflow_use.line_index
-            replacement: $"($workflow_use.prefix)($workflow_use.action_name)@($update.target_ref) # (with-version-prefix $update.target_version)"
-          }
+      if (not $update.has_update) {
+        null
+      } else {
+        {
+          file_path: $workflow_use.file_path
+          line_index: $workflow_use.line_index
+          replacement: $"($workflow_use.prefix)($workflow_use.action_name)@($update.target_ref) # (with-version-prefix $update.target_version)"
         }
       }
-    | compact
+    } | compact
   )
 
   let mise_changes = (
-    $mise_version_uses
-    | each { |mise_use|
-        let update = (
-          $mise_updates
-          | where current_version == $mise_use.current_version
-          | first
-        )
+    $mise_version_uses | each { |mise_use|
+      let update = (
+        $mise_updates
+        | where current_version == $mise_use.current_version
+        | first
+      )
 
-        if (not $update.has_update) {
-          null
-        } else {
-          {
-            file_path: $mise_use.file_path
-            line_index: $mise_use.line_index
-            replacement: $"($mise_use.prefix)($update.target_version)"
-          }
+      if (not $update.has_update) {
+        null
+      } else {
+        {
+          file_path: $mise_use.file_path
+          line_index: $mise_use.line_index
+          replacement: $"($mise_use.prefix)($update.target_version)"
         }
       }
-    | compact
+    } | compact
   )
 
   let file_paths = (
@@ -116,29 +112,29 @@ def main [--dry-run] {
       $file_lines
       | enumerate
       | each { |line|
-          let workflow_change = (
-            $workflow_changes
-            | where file_path == $file_path and line_index == $line.index
-            | get replacement
-            | get -o 0
-            | default null
-          )
-          let mise_change = (
-            $mise_changes
-            | where file_path == $file_path and line_index == $line.index
-            | get replacement
-            | get -o 0
-            | default null
-          )
+        let workflow_change = (
+          $workflow_changes
+          | where file_path == $file_path and line_index == $line.index
+          | get replacement
+          | get -o 0
+          | default null
+        )
+        let mise_change = (
+          $mise_changes
+          | where file_path == $file_path and line_index == $line.index
+          | get replacement
+          | get -o 0
+          | default null
+        )
 
-          if ($workflow_change | is-not-empty) {
-            $workflow_change
-          } else if ($mise_change | is-not-empty) {
-            $mise_change
-          } else {
-            $line.item
-          }
+        if ($workflow_change | is-not-empty) {
+          $workflow_change
+        } else if ($mise_change | is-not-empty) {
+          $mise_change
+        } else {
+          $line.item
         }
+      }
     )
 
     let updated_text = ($updated_lines | str join "\n")
@@ -166,48 +162,44 @@ def list-workflow-files [] {
 
 def collect-workflow-inventory [file_paths: list<string>] {
   let workflow_uses = (
-    $file_paths
-    | each { |file_path|
-        let file_lines = (read-file-lines $file_path)
+    $file_paths | each { |file_path|
+      let file_lines = (read-file-lines $file_path)
 
-        $file_lines
-        | enumerate
-        | each { |line|
-            let match = (regex-first $line.item $USES_PATTERN)
-            if $match == null {
-              null
-            } else if ($match.action | str starts-with './') {
-              null
-            } else {
-              let original_comment = ($match | get -o comment | default null)
-              if $original_comment == null {
-                null
-              } else {
-                {
-                  file_path: $file_path
-                  line_index: $line.index
-                  prefix: $match.prefix
-                  action_name: $match.action
-                  current_ref: $match.ref
-                  current_version: (normalize-version $original_comment)
-                  original_comment: ($original_comment | str trim)
-                }
-              }
+      $file_lines
+      | enumerate
+      | each { |line|
+        let match = (regex-first $line.item $USES_PATTERN)
+        if $match == null {
+          null
+        } else if ($match.action | str starts-with './') {
+          null
+        } else {
+          let original_comment = ($match | get -o comment | default null)
+          if $original_comment == null {
+            null
+          } else {
+            {
+              file_path: $file_path
+              line_index: $line.index
+              prefix: $match.prefix
+              action_name: $match.action
+              current_ref: $match.ref
+              current_version: (normalize-version $original_comment)
+              original_comment: ($original_comment | str trim)
             }
           }
-        | compact
-      }
-    | flatten
+        }
+      } | compact
+    } | flatten
   )
 
   let mise_version_uses = (
     $workflow_uses
     | where action_name == 'jdx/mise-action'
     | each { |workflow_use|
-        let file_lines = (read-file-lines $workflow_use.file_path)
-        find-mise-version-use $workflow_use.file_path $file_lines $workflow_use.line_index
-      }
-    | compact
+      let file_lines = (read-file-lines $workflow_use.file_path)
+      find-mise-version-use $workflow_use.file_path $file_lines $workflow_use.line_index
+    } | compact
   )
 
   {
@@ -255,10 +247,9 @@ def group-mise-version-uses [mise_version_uses: list<any>] {
 def resolve-updates [groups: list<any>] {
   let repositories = ($groups | each {|group| $group.action_name } | uniq)
   let tag_cache = (
-    $repositories
-    | reduce --fold {} { |repository, cache|
-        $cache | upsert $repository (get-repository-tags $repository)
-      }
+    $repositories | reduce --fold {} { |repository, cache|
+      $cache | upsert $repository (get-repository-tags $repository)
+    }
   )
 
   $groups | each { |group|
@@ -303,16 +294,14 @@ def resolve-mise-updates [groups: list<any>] {
   let target_tag = (select-latest-tag $available_tags)
 
   if $target_tag == null {
-    return (
-      $groups
-      | each { |group|
-          {
-            dep_name: $group.dep_name
-            current_version: $group.current_version
-            target_version: $group.current_version
-            has_update: false
-          }
+    return ( $groups | each { |group|
+        {
+          dep_name: $group.dep_name
+          current_version: $group.current_version
+          target_version: $group.current_version
+          has_update: false
         }
+      }
     )
   }
 
@@ -352,23 +341,22 @@ def get-repository-tags [repository: string] {
 
 def select-latest-tag [tags: list<string>] {
   let stable_tags = (
-    $tags
-    | each { |tag|
-        let parsed = (parse-version $tag)
-        if $parsed == null {
-          null
-        } else if $parsed.prerelease != null {
-          null
-        } else {
-          {
-            tag: $tag
-            major: $parsed.major
-            minor: $parsed.minor
-            patch: $parsed.patch
-            segments: $parsed.segments
-          }
+    $tags | each { |tag|
+      let parsed = (parse-version $tag)
+      if $parsed == null {
+        null
+      } else if $parsed.prerelease != null {
+        null
+      } else {
+        {
+          tag: $tag
+          major: $parsed.major
+          minor: $parsed.minor
+          patch: $parsed.patch
+          segments: $parsed.segments
         }
       }
+    }
     | compact
     | sort-by major minor patch segments --reverse
   )

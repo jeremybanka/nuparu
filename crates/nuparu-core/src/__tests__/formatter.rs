@@ -328,6 +328,36 @@ fn normalizes_noisy_grouped_pipeline_indentation() {
 }
 
 #[test]
+fn normalizes_noisy_each_closure_compact_tail_layout() {
+    let input = "let matching_dirs = (\n  ls $parent_dir\n  | where type == \"dir\"\n  | each {|row|\n      let basename = ($row.name | path basename)\n      let parsed = ($basename | parse --regex $version_pattern)\n\n      if ($parsed | is-empty) {\n        null\n      } else {\n        let entry = ($parsed | first)\n        {\n          name: $row.name\n          version: ($entry.version | into int)\n        }\n      }\n    }\n  | compact\n)\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "let matching_dirs = (\n  ls $parent_dir\n  | where type == \"dir\"\n  | each {|row|\n    let basename = ($row.name | path basename)\n    let parsed = ($basename | parse --regex $version_pattern)\n\n    if ($parsed | is-empty) {\n      null\n    } else {\n      let entry = ($parsed | first)\n        {\n          name: $row.name\n          version: ($entry.version | into int)\n        }\n      }\n    }\n  | compact\n)\n"
+    );
+}
+
+#[test]
+fn normalizes_noisy_inventory_scan_closure_layout() {
+    let input = "let workflow_uses = (\n  $file_paths\n  | each { |file_path|\n      let file_lines = (read-file-lines $file_path)\n\n      $file_lines\n      | enumerate\n      | each { |line|\n          let match = (regex-first $line.item $USES_PATTERN)\n          if $match == null {\n            null\n          } else if ($match.action | str starts-with './') {\n            null\n          } else {\n            let original_comment = ($match | get -o comment | default null)\n            if $original_comment == null {\n              null\n            } else {\n              {\n                file_path: $file_path\n                line_index: $line.index\n                prefix: $match.prefix\n                action_name: $match.action\n                current_ref: $match.ref\n                current_version: (normalize-version $original_comment)\n                original_comment: ($original_comment | str trim)\n              }\n            }\n          }\n        }\n      | compact\n    }\n  | flatten\n)\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "let workflow_uses = (\n  $file_paths\n  | each { |file_path|\n    let file_lines = (read-file-lines $file_path)\n\n      $file_lines\n    | enumerate\n    | each { |line|\n      let match = (regex-first $line.item $USES_PATTERN)\n      if $match == null {\n        null\n      } else if ($match.action | str starts-with './') {\n        null\n      } else {\n        let original_comment = ($match | get -o comment | default null)\n        if $original_comment == null {\n          null\n        } else {\n              {\n                file_path: $file_path\n                line_index: $line.index\n                prefix: $match.prefix\n                action_name: $match.action\n                current_ref: $match.ref\n                current_version: (normalize-version $original_comment)\n                original_comment: ($original_comment | str trim)\n              }\n            }\n          }\n        }\n    | compact\n    }\n  | flatten\n)\n"
+    );
+}
+
+#[test]
+fn normalizes_noisy_return_grouped_multiline_expression_layout() {
+    let input = "if $target_tag == null {\n  return (\n      $groups\n      | each { |group|\n          {\n            dep_name: $group.dep_name\n            current_version: $group.current_version\n            target_version: $group.current_version\n            has_update: false\n          }\n        }\n    )\n}\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "if $target_tag == null {\n  return (\n      $groups\n    | each { |group|\n          {\n            dep_name: $group.dep_name\n            current_version: $group.current_version\n            target_version: $group.current_version\n            has_update: false\n          }\n        }\n  )\n}\n"
+    );
+}
+
+#[test]
 fn keeps_sync_copy_steps_on_separate_lines() {
     let input = "mkdir $local_dir\ncp --force $source_path $dest_path\n\nprint $\"Copied ($source_path)\"\nprint $\"to ($dest_path)\"\n";
     let output = format_text(input, &Configuration::default());

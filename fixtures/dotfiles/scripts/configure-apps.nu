@@ -98,10 +98,9 @@ def configure-illustrator [] {
   }
 
   let highest_version_dir = (
-    find-highest-version-dir
-      $illustrator_prefs_dir
-      '^Adobe Illustrator (?P<version>\d+) Settings$'
-      "No Adobe Illustrator settings directories found."
+    find-highest-version-dir $illustrator_prefs_dir
+    '^Adobe Illustrator (?P<version>\d+) Settings$'
+    "No Adobe Illustrator settings directories found."
   )
   let target_workspaces_dir = ($highest_version_dir | path join "en_US" "Workspaces")
 
@@ -129,10 +128,9 @@ def configure-indesign [] {
   }
 
   let highest_version_dir = (
-    find-highest-version-dir
-      $indesign_prefs_dir
-      '^Version (?P<version>\d+)\.0$'
-      "No Adobe InDesign settings directories found."
+    find-highest-version-dir $indesign_prefs_dir
+    '^Version (?P<version>\d+)\.0$'
+    "No Adobe InDesign settings directories found."
   )
   let target_workspaces_dir = ($highest_version_dir | path join "en_US" "Workspaces")
 
@@ -144,20 +142,19 @@ def find-highest-version-dir [parent_dir: string, version_pattern: string, missi
     ls $parent_dir
     | where type == "dir"
     | each {|row|
-        let basename = ($row.name | path basename)
-        let parsed = ($basename | parse --regex $version_pattern)
+      let basename = ($row.name | path basename)
+      let parsed = ($basename | parse --regex $version_pattern)
 
-        if ($parsed | is-empty) {
-          null
-        } else {
-          let entry = ($parsed | first)
-          {
-            name: $row.name
-            version: ($entry.version | into int)
-          }
+      if ($parsed | is-empty) {
+        null
+      } else {
+        let entry = ($parsed | first)
+        {
+          name: $row.name
+          version: ($entry.version | into int)
         }
       }
-    | compact
+    } | compact
   )
 
   if ($matching_dirs | is-empty) {

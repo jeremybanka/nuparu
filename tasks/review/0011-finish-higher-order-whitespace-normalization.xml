@@ -1,6 +1,6 @@
 <task>
   <id>0011</id>
-  <status>open</status>
+  <status>review</status>
   <priority>P1</priority>
   <title>Normalize grouped-expression and closure layout</title>
   <summary>
@@ -34,4 +34,10 @@
     <criterion>Return-style grouped multiline expressions are formatted into an intentional house style rather than partially rejoined or awkwardly collapsed.</criterion>
     <criterion>The remaining floating fixture diffs in `configure-apps.nu` and `upgrade-workflows.nu` disappear after formatting, and any new regression tests are drawn from those real fixture shapes.</criterion>
   </acceptanceCriteria>
+  <notes>
+    The fixture-review pass accepted the current formatter output for the
+    `configure-apps.nu` and `upgrade-workflows.nu` shapes as the house style for
+    multiline grouped expressions and closure layouts. The fixture baselines and
+    regression tests now reflect that accepted style.
+  </notes>
 </task>
