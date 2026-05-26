@@ -18,6 +18,11 @@
   ],
   "packageRules": [
     {
+      "groupName": "nushell parser packages",
+      "matchManagers": ["cargo"],
+      "matchDepNames": ["nu-parser", "nu-protocol"]
+    },
+    {
       "groupName": "vite-plus",
       "matchDepNames": ["vite", "vitest", "vite-plus", "viteplus"],
       "matchPackageNames": [
