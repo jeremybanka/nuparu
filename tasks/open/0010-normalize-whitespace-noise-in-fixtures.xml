@@ -1,0 +1,40 @@
+<task>
+  <id>0010</id>
+  <status>open</status>
+  <priority>P1</priority>
+  <title>Normalize whitespace noise instead of preserving it in formatted Nushell</title>
+  <summary>
+    The formatter reliably strips trailing spaces, but it still preserves large
+    runs of internal spaces, ragged indentation, and some statement-boundary
+    collapses after whitespace-only damage is introduced into real fixtures.
+  </summary>
+  <problem>
+    When the fixture corpus is intentionally dirtied with repeated spaces and
+    inconsistent indentation, `nuparu --write` produces syntactically valid and
+    idempotent output, but much of the whitespace noise survives. In several
+    places it also cements bad statement joins like adjacent `print` calls or
+    neighboring function invocations on the same line. That means the formatter
+    is robust against lexing failures, but not yet robust against whitespace
+    corruption in source text.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/configure-apps.nu</file>
+    <file>fixtures/dotfiles/scrubs/bootstrap.nu</file>
+    <file>fixtures/dotfiles/scrubs/download-latest-iso.nu</file>
+    <file>fixtures/dotfiles/scrubs/lib.nu</file>
+    <file>fixtures/dotfiles/scrubs/seed.nu</file>
+    <file>fixtures/dotfiles/scrubs/sync-base-image-from-icloud.nu</file>
+    <file>fixtures/dotfiles/scrubs/sync-base-image-to-icloud.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>tasks/review/0001-0004.md</path>
+    <path>tasks/review/0007-0009-style-decisions.md</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Repeated internal spaces around keywords, commands, operators, and pipelines collapse to the formatter's normal single-space style when there is no syntax-specific reason to preserve them.</criterion>
+    <criterion>Indented multiline shapes such as grouped expressions and pipelines are reindented to the configured width instead of inheriting arbitrary source indentation.</criterion>
+    <criterion>Whitespace-only noise does not reactivate statement-boundary collapse for neighboring commands like adjacent print statements or adjacent top-level invocations.</criterion>
+    <criterion>Regression tests are drawn from the real fixture failures produced by the whitespace-damage experiment, not only from synthetic minimal cases.</criterion>
+  </acceptanceCriteria>
+</task>
