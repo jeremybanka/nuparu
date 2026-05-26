@@ -53,7 +53,7 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
         let line_body = if multiline_string_lines[index] {
             trimmed_end.to_string()
         } else if has_verbatim_multiline_token || has_structural_multiline_token {
-            content.to_string()
+            normalize_inline_whitespace(content)
         } else {
             format_line(trimmed_end, &line_tokens, &normalized)
         };
@@ -85,7 +85,15 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             }
         } else if !multiline_string_lines[index] {
             if preserved_multiline_group_expression_lines[index] {
-                result.push_str(&" ".repeat(leading_indent(lines[index].text)));
+                let continuation_indent = continuation_indent_level(&lines, index, content);
+                let computed_indent_width =
+                    (effective_indent + continuation_indent) * config.indent_width as usize;
+                let indent_width = if should_preserve_group_expression_source_indent(content) {
+                    leading_indent(lines[index].text)
+                } else {
+                    computed_indent_width
+                };
+                result.push_str(&" ".repeat(indent_width));
             } else {
                 let continuation_indent = continuation_indent_level(&lines, index, content);
                 result.push_str(&" ".repeat(
@@ -504,7 +512,12 @@ fn format_line(line_text: &str, tokens: &[&Token], source: &str) -> String {
     let mut prev_kind = None;
 
     for (index, token) in tokens.iter().enumerate() {
-        let text = token_text(token, source);
+        let raw_text = token_text(token, source);
+        let text = if token.contents == TokenContents::Item {
+            normalize_inline_whitespace(raw_text)
+        } else {
+            raw_text.to_string()
+        };
         let next_kind = tokens.get(index + 1).map(|token| token.contents);
 
         match token.contents {
@@ -533,14 +546,14 @@ fn format_line(line_text: &str, tokens: &[&Token], source: &str) -> String {
                 if !result.is_empty() {
                     result.push(' ');
                 }
-                result.push_str(text);
+                result.push_str(&text);
                 if next_kind.is_some() {
                     result.push(' ');
                 }
             }
             TokenContents::Semicolon => {
                 trim_trailing_spaces(&mut result);
-                result.push_str(text);
+                result.push_str(&text);
                 if next_kind.is_some() {
                     result.push(' ');
                 }
@@ -549,7 +562,7 @@ fn format_line(line_text: &str, tokens: &[&Token], source: &str) -> String {
                 if needs_space_before(prev_kind, token.contents, &result) {
                     result.push(' ');
                 }
-                result.push_str(text);
+                result.push_str(&text);
             }
         }
 
@@ -620,6 +633,7 @@ fn join_separator(
     lines: &[SourceLine<'_>],
     index: usize,
 ) -> Option<&'static str> {
+    let previous_output = previous_output.trim_start();
     let current_indent = leading_indent(lines[index].text);
     let previous_indent = leading_indent(lines[index - 1].text);
     let continuation_indent = current_indent >= previous_indent;
@@ -790,7 +804,6 @@ fn is_command_continuation(content: &str, previous_output: &str) -> bool {
         || content.starts_with('(')
         || content.starts_with('"')
         || content.starts_with('\'')
-        || (is_simple_expression_start(content) && previous_output.contains(' '))
 }
 
 fn can_extend_command(previous_output: &str) -> bool {
@@ -1012,4 +1025,55 @@ fn trim_trailing_spaces(text: &mut String) {
     while text.ends_with(' ') {
         text.pop();
     }
+}
+
+fn should_preserve_group_expression_source_indent(content: &str) -> bool {
+    is_simple_argument_line(content) || content == "{" || content == "}" || content.contains(':')
+}
+
+fn normalize_inline_whitespace(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    let mut pending_space = false;
+
+    for ch in text.chars() {
+        if let Some(active_quote) = quote {
+            result.push(ch);
+
+            if escaped {
+                escaped = false;
+                continue;
+            }
+
+            if ch == '\\' {
+                escaped = true;
+                continue;
+            }
+
+            if ch == active_quote {
+                quote = None;
+            }
+
+            continue;
+        }
+
+        if ch.is_ascii_whitespace() {
+            pending_space = !result.is_empty();
+            continue;
+        }
+
+        if pending_space {
+            result.push(' ');
+            pending_space = false;
+        }
+
+        result.push(ch);
+
+        if matches!(ch, '"' | '\'' | '`') {
+            quote = Some(ch);
+        }
+    }
+
+    result
 }

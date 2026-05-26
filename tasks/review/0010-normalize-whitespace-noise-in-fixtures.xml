@@ -1,6 +1,6 @@
 <task>
   <id>0010</id>
-  <status>open</status>
+  <status>review</status>
   <priority>P1</priority>
   <title>Normalize whitespace noise instead of preserving it in formatted Nushell</title>
   <summary>
@@ -37,4 +37,9 @@
     <criterion>Whitespace-only noise does not reactivate statement-boundary collapse for neighboring commands like adjacent print statements or adjacent top-level invocations.</criterion>
     <criterion>Regression tests are drawn from the real fixture failures produced by the whitespace-damage experiment, not only from synthetic minimal cases.</criterion>
   </acceptanceCriteria>
+  <notes>
+    The checked-in formatter regressions for internal space collapse, noisy grouped
+    indentation, and noisy statement-boundary preservation are now green. The
+    remaining floating fixture diffs have been split into follow-up task 0011.
+  </notes>
 </task>

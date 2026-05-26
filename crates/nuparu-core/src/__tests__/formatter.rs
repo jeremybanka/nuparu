@@ -299,7 +299,7 @@ fn normalizes_repeated_internal_spaces_in_simple_pipeline() {
 
 #[test]
 fn keeps_noisy_adjacent_function_invocations_on_separate_lines() {
-    let input = "def    main [] {\n  configure-vs-code configure-vscodium\n  configure-cursor configure-illustrator\n  configure-indesign\n}\n";
+    let input = "def    main [] {\n   configure-vs-code\n    configure-vscodium\n   configure-cursor\n    configure-illustrator\n   configure-indesign\n}\n";
     let output = format_text(input, &Configuration::default());
     assert_eq!(
         output,
@@ -309,11 +309,11 @@ fn keeps_noisy_adjacent_function_invocations_on_separate_lines() {
 
 #[test]
 fn keeps_noisy_instruction_prints_on_separate_lines() {
-    let input = "print    \"Inside the installer console, run:\"\nprint    \"  sudo -i\" print    \"  /mnt/host-scrubs-seed/install.sh\"\nprint    \"\"\n";
+    let input = "def    demo [] {\n   print    \"Inside the installer console, run:\"\n    print    \"  sudo -i\"\n   print    \"  /mnt/host-scrubs-seed/install.sh\"\n    print    \"\"\n}\n";
     let output = format_text(input, &Configuration::default());
     assert_eq!(
         output,
-        "print \"Inside the installer console, run:\"\nprint \"  sudo -i\"\nprint \"  /mnt/host-scrubs-seed/install.sh\"\nprint \"\"\n"
+        "def demo [] {\n  print \"Inside the installer console, run:\"\n  print \"  sudo -i\"\n  print \"  /mnt/host-scrubs-seed/install.sh\"\n  print \"\"\n}\n"
     );
 }
 
