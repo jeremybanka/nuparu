@@ -406,6 +406,41 @@ fn restores_missing_space_after_pipe_before_command() {
 }
 
 #[test]
+fn removes_space_before_type_colon_after_optional_parameter_marker() {
+    let input = "def main [instance_name? : string] {\n}\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(output, "def main [instance_name?: string] {\n}\n");
+}
+
+#[test]
+fn rejoins_split_where_comparison_continuation() {
+    let input = "ls $lima_dir | where type\n== dir\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(output, "ls $lima_dir | where type == dir\n");
+}
+
+#[test]
+fn rejoins_grouped_pipeline_with_bare_pipe_line() {
+    let input = "let output_path = (\n  $cache_dir\n  |\n  path join $file_name\n)\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(output, "let output_path = ($cache_dir | path join $file_name)\n");
+}
+
+#[test]
+fn removes_space_after_group_opener_in_simple_subexpression() {
+    let input = "let config = ( open --raw $config_path | from yaml)\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(output, "let config = (open --raw $config_path | from yaml)\n");
+}
+
+#[test]
+fn rejoins_trivial_inline_else_block_body() {
+    let input = "let scheme = if $host == 443 { \"https\" } else { \"http\"\n}\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(output, "let scheme = if $host == 443 { \"https\" } else { \"http\" }\n");
+}
+
+#[test]
 fn normalizes_noisy_grouped_pipeline_indentation() {
     let input = "(\n     open    --raw ($scrubs_dir  |   path join \"seed.yaml\")\n       |      str replace \"REPLACE_WITH_SEED_ISO\" $iso_location\n      |      str replace \"REPLACE_WITH_SEED_DIR\" $seed_dir\n  )     |   save --force $template_file\n";
     let output = format_text(input, &Configuration::default());
