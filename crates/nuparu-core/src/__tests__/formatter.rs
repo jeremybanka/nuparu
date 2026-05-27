@@ -359,6 +359,44 @@ fn keeps_noisy_print_and_if_as_distinct_statements() {
 }
 
 #[test]
+fn restores_missing_space_in_optional_typed_parameter() {
+    let input = "def main [instance_name?:string] {\n}\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(output, "def main [instance_name?: string] {\n}\n");
+}
+
+#[test]
+fn restores_missing_space_after_parameter_comma() {
+    let input = "def show-instance-port-forwards [lima_dir: string,instance: string] {\n}\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "def show-instance-port-forwards [lima_dir: string, instance: string] {\n}\n"
+    );
+}
+
+#[test]
+fn restores_missing_spaces_in_closure_signature_shape() {
+    let input =
+        "ls $lima_dir\n| where {|entry|(($entry.name | path join \"lima.yaml\") | path exists) }\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "ls $lima_dir\n| where { |entry| (($entry.name | path join \"lima.yaml\") | path exists) }\n"
+    );
+}
+
+#[test]
+fn restores_missing_space_before_record_closer() {
+    let input = "if ($instances | is-empty) {\n  error make { msg: $\"No Lima instances found in ($lima_dir)\"}\n}\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "if ($instances | is-empty) {\n  error make { msg: $\"No Lima instances found in ($lima_dir)\" }\n}\n"
+    );
+}
+
+#[test]
 fn normalizes_noisy_grouped_pipeline_indentation() {
     let input = "(\n     open    --raw ($scrubs_dir  |   path join \"seed.yaml\")\n       |      str replace \"REPLACE_WITH_SEED_ISO\" $iso_location\n      |      str replace \"REPLACE_WITH_SEED_DIR\" $seed_dir\n  )     |   save --force $template_file\n";
     let output = format_text(input, &Configuration::default());
