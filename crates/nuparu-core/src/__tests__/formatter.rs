@@ -151,6 +151,16 @@ fn expands_half_compacted_real_fixture_pipeline_when_full_line_would_be_too_wide
 }
 
 #[test]
+fn expands_half_compacted_real_fixture_pipeline_stage_when_full_line_would_be_too_wide() {
+    let input = "ls $lima_dir\n| where type == dir | where { |entry| (($entry.name | path join \"lima.yaml\") | path exists) }\n| get name\n| path basename\n| sort\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "ls $lima_dir\n| where type == dir\n| where { |entry| (($entry.name | path join \"lima.yaml\") | path exists) }\n| get name\n| path basename\n| sort\n"
+    );
+}
+
+#[test]
 fn keeps_long_pipelines_broken_when_they_exceed_line_width() {
     let input = "open --raw $settings_file\n| lines\n| each { |line| $line | str trim }\n| where { |line| $line != \"\" and not ($line | str starts-with \"#\") }\n";
     let output = format_text(input, &Configuration::default());

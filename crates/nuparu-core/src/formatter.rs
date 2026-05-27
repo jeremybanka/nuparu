@@ -64,7 +64,7 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             format_line(trimmed_end, &line_tokens, &normalized, line_indent_width)
         };
 
-        line_body = expand_half_compacted_pipeline_head_if_needed(
+        line_body = expand_half_compacted_pipeline_line_if_needed(
             &lines,
             index,
             &line_body,
@@ -1246,14 +1246,14 @@ fn can_join_compact_group_expression_opener(previous_output: &str) -> bool {
     trimmed == "(" || trimmed.ends_with("= (") || trimmed.ends_with("return (")
 }
 
-fn expand_half_compacted_pipeline_head_if_needed(
+fn expand_half_compacted_pipeline_line_if_needed(
     lines: &[SourceLine<'_>],
     index: usize,
     line_body: &str,
     indent_width: usize,
     line_width: usize,
 ) -> String {
-    if !should_expand_half_compacted_pipeline_head(lines, index, line_body, line_width) {
+    if !should_expand_half_compacted_pipeline_line(lines, index, line_body, line_width) {
         return line_body.to_string();
     }
 
@@ -1265,7 +1265,12 @@ fn expand_half_compacted_pipeline_head_if_needed(
         return line_body.to_string();
     }
 
-    let mut result = stages[0].clone();
+    let current_starts_pipe = lines[index].text.trim_start().starts_with('|');
+    let mut result = if current_starts_pipe {
+        format!("| {}", stages[0])
+    } else {
+        stages[0].clone()
+    };
     let indent = " ".repeat(indent_width);
 
     for stage in stages.iter().skip(1) {
@@ -1278,17 +1283,20 @@ fn expand_half_compacted_pipeline_head_if_needed(
     result
 }
 
-fn should_expand_half_compacted_pipeline_head(
+fn should_expand_half_compacted_pipeline_line(
     lines: &[SourceLine<'_>],
     index: usize,
     line_body: &str,
     line_width: usize,
 ) -> bool {
-    if line_body.contains('\n') || lines[index].text.trim_start().starts_with('|') {
+    if line_body.contains('\n') {
         return false;
     }
 
-    if next_nonempty_content(lines, index).is_none_or(|next| !next.starts_with('|')) {
+    let next_is_pipe = next_nonempty_content(lines, index).is_some_and(|next| next.starts_with('|'));
+    let current_is_pipe = lines[index].text.trim_start().starts_with('|');
+
+    if !(current_is_pipe || next_is_pipe) {
         return false;
     }
 
