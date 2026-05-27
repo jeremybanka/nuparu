@@ -53,7 +53,7 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             (effective_indent + continuation_indent) * config.indent_width as usize;
         let (line_tokens, has_verbatim_multiline_token, has_structural_multiline_token) =
             line_tokens(&lexed.tokens, line.start, line.end, &normalized);
-        let line_body = if multiline_string_lines[index] {
+        let mut line_body = if multiline_string_lines[index] {
             trimmed_end.to_string()
         } else if has_verbatim_multiline_token || has_structural_multiline_token {
             restore_separator_spaces(&split_reserved_statement_heads(
@@ -64,10 +64,19 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             format_line(trimmed_end, &line_tokens, &normalized, line_indent_width)
         };
 
+        line_body = expand_half_compacted_pipeline_head_if_needed(
+            &lines,
+            index,
+            &line_body,
+            line_indent_width,
+            config.line_width as usize,
+        );
+
         let join_with_previous = if multiline_string_lines[index]
             || (index > 0 && multiline_string_lines[index - 1])
             || preserved_multiline_list_lines[index]
             || preserved_multiline_group_expression_lines[index]
+            || line_body.contains('\n')
         {
             None
         } else {
@@ -895,7 +904,8 @@ fn join_with_previous_line(
     }
 
     let previous_output = last_output_line(result)?;
-    let separator = join_separator(previous_output, previous_source, content, lines, index)?;
+    let separator =
+        join_separator(previous_output, previous_source, content, lines, index, line_width)?;
     let candidate_length = previous_output.len() + separator.len() + line_body.len();
 
     (candidate_length <= line_width).then_some(separator)
@@ -907,6 +917,7 @@ fn join_separator(
     content: &str,
     lines: &[SourceLine<'_>],
     index: usize,
+    line_width: usize,
 ) -> Option<&'static str> {
     let previous_output = previous_output.trim_start();
     let current_indent = leading_indent(lines[index].text);
@@ -936,6 +947,10 @@ fn join_separator(
 
     if content.starts_with('|') {
         if previous_output.ends_with('{') && is_closure_signature(content) {
+            return Some(" ");
+        }
+
+        if pipeline_run_fits_within_line_width(lines, index, line_width) {
             return Some(" ");
         }
 
@@ -1229,6 +1244,185 @@ fn can_join_inline_block_closer(previous_output: &str) -> bool {
 fn can_join_compact_group_expression_opener(previous_output: &str) -> bool {
     let trimmed = previous_output.trim_end();
     trimmed == "(" || trimmed.ends_with("= (") || trimmed.ends_with("return (")
+}
+
+fn expand_half_compacted_pipeline_head_if_needed(
+    lines: &[SourceLine<'_>],
+    index: usize,
+    line_body: &str,
+    indent_width: usize,
+    line_width: usize,
+) -> String {
+    if !should_expand_half_compacted_pipeline_head(lines, index, line_body, line_width) {
+        return line_body.to_string();
+    }
+
+    let Some(stages) = split_top_level_pipeline_stages(line_body) else {
+        return line_body.to_string();
+    };
+
+    if stages.len() < 2 {
+        return line_body.to_string();
+    }
+
+    let mut result = stages[0].clone();
+    let indent = " ".repeat(indent_width);
+
+    for stage in stages.iter().skip(1) {
+        result.push('\n');
+        result.push_str(&indent);
+        result.push_str("| ");
+        result.push_str(stage);
+    }
+
+    result
+}
+
+fn should_expand_half_compacted_pipeline_head(
+    lines: &[SourceLine<'_>],
+    index: usize,
+    line_body: &str,
+    line_width: usize,
+) -> bool {
+    if line_body.contains('\n') || lines[index].text.trim_start().starts_with('|') {
+        return false;
+    }
+
+    if next_nonempty_content(lines, index).is_none_or(|next| !next.starts_with('|')) {
+        return false;
+    }
+
+    split_top_level_pipeline_stages(line_body).is_some_and(|stages| stages.len() > 1)
+        && !pipeline_run_fits_within_line_width(lines, index, line_width)
+}
+
+fn pipeline_run_fits_within_line_width(
+    lines: &[SourceLine<'_>],
+    index: usize,
+    line_width: usize,
+) -> bool {
+    let current = lines[index].text.trim();
+    let current_starts_pipe = lines[index].text.trim_start().starts_with('|');
+    let current_has_pipeline =
+        split_top_level_pipeline_stages(current).is_some_and(|stages| stages.len() > 1);
+
+    if !current_starts_pipe && !current_has_pipeline {
+        return false;
+    }
+
+    let mut head_index = index;
+    while head_index > 0 && lines[head_index].text.trim_start().starts_with('|') {
+        head_index -= 1;
+    }
+
+    if head_index == index && !current_starts_pipe {
+        return false;
+    }
+
+    let mut end_index = index;
+    while end_index + 1 < lines.len() && lines[end_index + 1].text.trim_start().starts_with('|') {
+        end_index += 1;
+    }
+
+    let collapsed = lines[head_index..=end_index]
+        .iter()
+        .map(|line| line.text.trim())
+        .filter(|content| !content.is_empty())
+        .map(normalize_inline_whitespace)
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    collapsed.len() <= line_width
+}
+
+fn split_top_level_pipeline_stages(text: &str) -> Option<Vec<String>> {
+    let mut stages = Vec::new();
+    let mut current = String::new();
+    let chars: Vec<char> = text.chars().collect();
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    let mut nesting_stack: Vec<char> = Vec::new();
+    let mut index = 0usize;
+
+    while index < chars.len() {
+        let ch = chars[index];
+
+        if let Some(active_quote) = quote {
+            current.push(ch);
+
+            if escaped {
+                escaped = false;
+                index += 1;
+                continue;
+            }
+
+            if ch == '\\' {
+                escaped = true;
+                index += 1;
+                continue;
+            }
+
+            if ch == active_quote {
+                quote = None;
+            }
+
+            index += 1;
+            continue;
+        }
+
+        match ch {
+            '"' | '\'' | '`' => {
+                quote = Some(ch);
+                current.push(ch);
+            }
+            '#' if nesting_stack.is_empty() => {
+                current.push_str(&chars[index..].iter().collect::<String>());
+                break;
+            }
+            '(' | '[' | '{' => {
+                nesting_stack.push(ch);
+                current.push(ch);
+            }
+            ')' => {
+                if matches!(nesting_stack.last(), Some('(')) {
+                    nesting_stack.pop();
+                }
+                current.push(ch);
+            }
+            ']' => {
+                if matches!(nesting_stack.last(), Some('[')) {
+                    nesting_stack.pop();
+                }
+                current.push(ch);
+            }
+            '}' => {
+                if matches!(nesting_stack.last(), Some('{')) {
+                    nesting_stack.pop();
+                }
+                current.push(ch);
+            }
+            '|' if nesting_stack.is_empty()
+                && chars.get(index + 1) != Some(&'|')
+                && (index == 0 || chars.get(index - 1) != Some(&'|')) =>
+            {
+                let stage = current.trim();
+                if !stage.is_empty() {
+                    stages.push(stage.to_string());
+                }
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+
+        index += 1;
+    }
+
+    let tail = current.trim();
+    if !tail.is_empty() {
+        stages.push(tail.to_string());
+    }
+
+    (stages.len() > 1).then_some(stages)
 }
 
 fn can_join_inline_group_closer(previous_output: &str) -> bool {
