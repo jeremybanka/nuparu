@@ -339,6 +339,26 @@ fn keeps_noisy_print_and_mutation_as_distinct_statements() {
 }
 
 #[test]
+fn keeps_noisy_print_and_let_as_distinct_statements() {
+    let input = "print    \"Preparing settings\" let cache_dir = \"/tmp/cache\"\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "print \"Preparing settings\"\nlet cache_dir = \"/tmp/cache\"\n"
+    );
+}
+
+#[test]
+fn keeps_noisy_print_and_if_as_distinct_statements() {
+    let input = "print    \"Checking guest reachability\" if $ready {\n  print \"ready\"\n}\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "print \"Checking guest reachability\"\nif $ready {\n  print \"ready\"\n}\n"
+    );
+}
+
+#[test]
 fn normalizes_noisy_grouped_pipeline_indentation() {
     let input = "(\n     open    --raw ($scrubs_dir  |   path join \"seed.yaml\")\n       |      str replace \"REPLACE_WITH_SEED_ISO\" $iso_location\n      |      str replace \"REPLACE_WITH_SEED_DIR\" $seed_dir\n  )     |   save --force $template_file\n";
     let output = format_text(input, &Configuration::default());

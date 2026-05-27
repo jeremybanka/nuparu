@@ -594,7 +594,10 @@ fn needs_space_before(
 }
 
 fn is_reserved_statement_head(text: &str) -> bool {
-    matches!(text, "mut" | "return")
+    matches!(
+        text,
+        "let" | "const" | "mut" | "return" | "if" | "for" | "while" | "match"
+    )
 }
 
 fn split_reserved_statement_heads(text: &str, indent_width: usize) -> String {
@@ -651,7 +654,7 @@ fn split_reserved_statement_heads(text: &str, indent_width: usize) -> String {
 
             if preceded_by_whitespace
                 && is_reserved_statement_head(&word)
-                && should_split_reserved_statement_line(&result)
+                && should_split_reserved_statement_line(&result, &word)
             {
                 trim_trailing_spaces(&mut result);
                 result.push('\n');
@@ -669,7 +672,7 @@ fn split_reserved_statement_heads(text: &str, indent_width: usize) -> String {
     result
 }
 
-fn should_split_reserved_statement_line(current_output: &str) -> bool {
+fn should_split_reserved_statement_line(current_output: &str, next_word: &str) -> bool {
     let current_line = current_output
         .lines()
         .next_back()
@@ -680,7 +683,24 @@ fn should_split_reserved_statement_line(current_output: &str) -> bool {
         return false;
     }
 
-    !matches!(current_line.chars().last(), Some('{' | '[' | '(' | '|'))
+    let trimmed = current_line.trim_end();
+
+    if matches!(trimmed.chars().last(), Some('{' | '[' | '(' | '|')) {
+        return false;
+    }
+
+    if matches!(trimmed, "let" | "const" | "mut") {
+        return false;
+    }
+
+    if next_word == "if"
+        && (trimmed.ends_with("else")
+            || matches!(trimmed.chars().last(), Some('=')))
+    {
+        return false;
+    }
+
+    true
 }
 
 fn starts_with_closer(content: &str) -> bool {

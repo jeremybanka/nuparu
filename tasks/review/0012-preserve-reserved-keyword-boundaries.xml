@@ -2,19 +2,20 @@
   <id>0012</id>
   <status>review</status>
   <priority>P1</priority>
-  <title>Preserve line boundaries before reserved statement keywords</title>
+  <title>Preserve line boundaries before reserved statement heads</title>
   <summary>
     A small remaining class of fixture diffs shows the formatter joining a prior
     expression line with a following line that begins with a reserved statement
-    keyword such as `return` or `mut`.
+    head such as `let`, `mut`, `return`, or `if`.
   </summary>
   <problem>
     Some line joins are genuinely ambiguous and should be pardoned, but not all
     of them are. When a following line begins with a reserved statement head
     that cannot safely act as a normal continuation of the previous line, the
-    formatter has enough syntactic knowledge to keep the boundary. The current
-    behavior still joins at least a `print`-then-`return` shape and a
-    `print`-then-`mut` shape in the floating fixtures.
+    formatter has enough syntactic knowledge to keep the boundary. The initial
+    fixture fix covered `print`-then-`return` and `print`-then-`mut`, and the
+    formatter rule has since been broadened to the practical statement-head set
+    of `let`, `const`, `mut`, `return`, `if`, `for`, `while`, and `match`.
   </problem>
   <affectedFiles>
     <file>fixtures/dotfiles/scripts/lima-ports.nu</file>
@@ -26,15 +27,16 @@
     <path>tasks/review/0011-finish-higher-order-whitespace-normalization.xml</path>
   </relatedCode>
   <acceptanceCriteria>
-    <criterion>A line ending in an expression is not joined with a following line that begins with reserved statement heads like `return` or `mut` when those tokens cannot validly continue the prior statement.</criterion>
+    <criterion>A line ending in an expression is not joined with a following line that begins with reserved statement heads like `let`, `const`, `mut`, `return`, `if`, `for`, `while`, or `match` when those tokens cannot validly continue the prior statement.</criterion>
     <criterion>The remaining floating fixture diffs in `lima-ports.nu` and `bootstrap.nu` disappear after formatting.</criterion>
     <criterion>New regression tests for this behavior are derived from the real fixture shapes rather than only synthetic one-liners.</criterion>
   </acceptanceCriteria>
   <notes>
-    The reserved-keyword boundary regressions for `print` followed by `return`
-    and `print` followed by `mut` are now green. Reformatting the remaining
-    fixture files clears the `bootstrap.nu` residue and leaves only the
-    formatter's already-established closure-signature compaction style in
-    `lima-ports.nu`.
+    The original reserved-keyword boundary regressions for `print` followed by
+    `return` and `print` followed by `mut` are green, and the underlying rule
+    has been widened to the broader statement-head set the formatter already
+    treats specially elsewhere. Reformatting the remaining fixture files clears
+    the `bootstrap.nu` residue and leaves only the formatter's already-
+    established closure-signature compaction style in `lima-ports.nu`.
   </notes>
 </task>
