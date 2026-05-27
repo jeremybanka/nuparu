@@ -22,12 +22,12 @@ fn normalizes_block_indentation() {
 }
 
 #[test]
-fn preserves_pipeline_indentation_inside_blocks() {
+fn rejoins_short_pipelines_inside_blocks_when_they_fit() {
     let input = "def demo [] {\nopen --raw foo\n| lines\n| each { |line| $line }\n}\n";
     let output = format_text(input, &Configuration::default());
     assert_eq!(
         output,
-        "def demo [] {\n  open --raw foo\n  | lines\n  | each { |line| $line }\n}\n"
+        "def demo [] {\n  open --raw foo | lines | each { |line| $line }\n}\n"
     );
 }
 
@@ -102,6 +102,52 @@ fn rejoins_short_pipelines() {
     let input = "$env.FILE_PWD\n| path dirname\n";
     let output = format_text(input, &Configuration::default());
     assert_eq!(output, "$env.FILE_PWD | path dirname\n");
+}
+
+#[test]
+fn rejoins_pipelines_that_fit_configured_line_width() {
+    let input = "open --raw $settings_file\n| lines\n| where $it != \"\"\n| str join \"\\n\"\n";
+    let output = format_text(
+        input,
+        &Configuration {
+            line_width: 90,
+            ..Configuration::default()
+        },
+    );
+    assert_eq!(
+        output,
+        "open --raw $settings_file | lines | where $it != \"\" | str join \"\\n\"\n"
+    );
+}
+
+#[test]
+fn keeps_pipelines_multiline_when_joined_form_exceeds_configured_line_width() {
+    let input = "open --raw $settings_file\n| lines\n| where $it != \"\"\n| str join \"\\n\"\n";
+    let output = format_text(
+        input,
+        &Configuration {
+            line_width: 50,
+            ..Configuration::default()
+        },
+    );
+    assert_eq!(output, input);
+}
+
+#[test]
+fn keeps_real_fixture_pipeline_fully_multiline_when_collapsed_form_is_too_wide() {
+    let input = "ls $lima_dir\n| where type == dir\n| where { |entry| (($entry.name | path join \"lima.yaml\") | path exists) }\n| get name\n| path basename\n| sort\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(output, input);
+}
+
+#[test]
+fn expands_half_compacted_real_fixture_pipeline_when_full_line_would_be_too_wide() {
+    let input = "ls $lima_dir | where type == dir\n| where { |entry| (($entry.name | path join \"lima.yaml\") | path exists) }\n| get name\n| path basename\n| sort\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "ls $lima_dir\n| where type == dir\n| where { |entry| (($entry.name | path join \"lima.yaml\") | path exists) }\n| get name\n| path basename\n| sort\n"
+    );
 }
 
 #[test]
@@ -535,14 +581,20 @@ fn keeps_multistatement_file_update_closure_multiline() {
 fn keeps_multistatement_line_update_closure_multiline() {
     let input = "$file_lines\n| enumerate\n| each { |line|\n  let workflow_change = (\n    $workflow_changes\n    | where file_path == $file_path and line_index == $line.index\n    | get replacement\n    | get -o 0\n    | default null\n  )\n  let mise_change = (\n    $mise_changes\n    | where file_path == $file_path and line_index == $line.index\n    | get replacement\n    | get -o 0\n    | default null\n  )\n\n  if ($workflow_change | is-not-empty) {\n    $workflow_change\n  } else if ($mise_change | is-not-empty) {\n    $mise_change\n  } else {\n    $line.item\n  }\n}\n";
     let output = format_text(input, &Configuration::default());
-    assert_eq!(output, input);
+    assert_eq!(
+        output,
+        "$file_lines | enumerate | each { |line|\n  let workflow_change = (\n    $workflow_changes\n    | where file_path == $file_path and line_index == $line.index\n    | get replacement\n    | get -o 0\n    | default null\n  )\n  let mise_change = (\n    $mise_changes\n    | where file_path == $file_path and line_index == $line.index\n    | get replacement\n    | get -o 0\n    | default null\n  )\n\n  if ($workflow_change | is-not-empty) {\n    $workflow_change\n  } else if ($mise_change | is-not-empty) {\n    $mise_change\n  } else {\n    $line.item\n  }\n}\n"
+    );
 }
 
 #[test]
 fn keeps_multistatement_inventory_scan_closure_multiline() {
     let input = "$file_lines\n| enumerate\n| each { |line|\n  let match = (regex-first $line.item $USES_PATTERN)\n  if $match == null {\n    null\n  } else if ($match.action | str starts-with './') {\n    null\n  } else {\n    let original_comment = ($match | get -o comment | default null)\n    if $original_comment == null {\n      null\n    } else {\n      $file_path\n    }\n  }\n}\n";
     let output = format_text(input, &Configuration::default());
-    assert_eq!(output, input);
+    assert_eq!(
+        output,
+        "$file_lines | enumerate | each { |line|\n  let match = (regex-first $line.item $USES_PATTERN)\n  if $match == null {\n    null\n  } else if ($match.action | str starts-with './') {\n    null\n  } else {\n    let original_comment = ($match | get -o comment | default null)\n    if $original_comment == null {\n      null\n    } else {\n      $file_path\n    }\n  }\n}\n"
+    );
 }
 
 #[test]
@@ -563,7 +615,10 @@ fn keeps_multistatement_update_resolution_closure_multiline() {
 fn keeps_two_statement_tag_parsing_closure_multiline() {
     let input = "$result.stdout\n| lines\n| each { |line|\n  let columns = ($line | split row --regex '\\s+')\n  $columns | get -o 1 | default ''\n}\n";
     let output = format_text(input, &Configuration::default());
-    assert_eq!(output, input);
+    assert_eq!(
+        output,
+        "$result.stdout | lines | each { |line|\n  let columns = ($line | split row --regex '\\s+')\n  $columns | get -o 1 | default ''\n}\n"
+    );
 }
 
 #[test]
