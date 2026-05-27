@@ -1,0 +1,38 @@
+<task>
+  <id>0014</id>
+  <status>open</status>
+  <priority>P1</priority>
+  <title>Rejoin tight continuations and delimiter adjacency</title>
+  <summary>
+    A new batch of fixture edits shows several small but important formatter
+    gaps where tight syntactic continuations stay awkwardly split or gain
+    spaces that do not belong.
+  </summary>
+  <problem>
+    Current fixture residue shows a few distinct formatter-scope issues. Optional
+    typed parameters can drift from `instance_name?: string` to
+    `instance_name? : string`. Simple boolean or comparison continuations can
+    remain broken as `where type` followed by `== dir` on the next line. Grouped
+    pipeline expressions can preserve a bare `|` on its own line instead of
+    rejoining to the surrounding expression. And inline grouped expressions or
+    blocks can keep extra delimiter-adjacent spaces or line breaks such as
+    `( open ...` or `else { "http"\n}` when the expression should settle back
+    into a compact house style.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/lima-ports.nu</file>
+    <file>fixtures/dotfiles/scrubs/download-latest-iso.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>crates/nuparu-core/src/__tests__/formatter.rs</path>
+    <path>tasks/open/0013-restore-missing-separator-spaces.xml</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Optional typed parameter syntax preserves the house form around `?` and `:`, keeping `instance_name?: string` rather than `instance_name? : string`.</criterion>
+    <criterion>Simple comparison continuations that still fit on one line rejoin into a normal expression, including shapes like `where type == dir`.</criterion>
+    <criterion>Grouped single-expression pipelines do not preserve a bare `|` on its own line when the surrounding expression should rejoin compactly.</criterion>
+    <criterion>Delimiter adjacency is normalized for compact grouped expressions and inline blocks, removing unwanted spaces after `(` and rejoining trivial inline block bodies when they fit.</criterion>
+    <criterion>Regression coverage is drawn from the real fixture residue in `lima-ports.nu` and `download-latest-iso.nu`.</criterion>
+  </acceptanceCriteria>
+</task>
