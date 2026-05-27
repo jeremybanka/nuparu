@@ -107,7 +107,7 @@ def main [--dry-run] {
   $file_paths | each { |file_path|
     let file_text = (open --raw $file_path)
     let had_trailing_newline = ($file_text | str ends-with "\n")
-    let file_lines = ($file_text | split row "\n" | each {|line| $line | str replace --regex '\r$' '' })
+    let file_lines = ($file_text | split row "\n" | each { |line| $line | str replace --regex '\r$' '' })
     let updated_lines = (
       $file_lines
       | enumerate
@@ -210,7 +210,7 @@ def collect-workflow-inventory [file_paths: list<string>] {
 
 def group-workflow-uses [workflow_uses: list<any>] {
   $workflow_uses
-  | group-by {|workflow_use| group-key $workflow_use.action_name $workflow_use.current_version }
+  | group-by { |workflow_use| group-key $workflow_use.action_name $workflow_use.current_version }
   | transpose group_key occurrences
   | each { |group|
     let first = ($group.occurrences | first)
@@ -245,7 +245,7 @@ def group-mise-version-uses [mise_version_uses: list<any>] {
 }
 
 def resolve-updates [groups: list<any>] {
-  let repositories = ($groups | each {|group| $group.action_name } | uniq)
+  let repositories = ($groups | each { |group| $group.action_name } | uniq)
   let tag_cache = (
     $repositories | reduce --fold {} { |repository, cache|
       $cache | upsert $repository (get-repository-tags $repository)
@@ -335,8 +335,8 @@ def get-repository-tags [repository: string] {
     let columns = ($line | split row --regex '\s+')
     $columns | get -o 1 | default ''
   }
-  | where {|ref| $ref != '' }
-  | each {|ref| $ref | str replace 'refs/tags/' '' }
+  | where { |ref| $ref != '' }
+  | each { |ref| $ref | str replace 'refs/tags/' '' }
 }
 
 def select-latest-tag [tags: list<string>] {
@@ -516,7 +516,7 @@ def leading-whitespace-length [value: string] {
 def read-file-lines [file_path: string] {
   open --raw $file_path
   | split row "\n"
-  | each {|line| $line | str replace --regex '\r$' '' }
+  | each { |line| $line | str replace --regex '\r$' '' }
 }
 
 def regex-first [value: string, pattern: string] {

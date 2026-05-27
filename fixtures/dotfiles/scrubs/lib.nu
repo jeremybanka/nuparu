@@ -15,9 +15,9 @@ export def load-settings [] {
 
   open --raw $settings_file
   | lines
-  | each {|line| $line | str trim }
-  | where {|line| $line != "" and not ($line | str starts-with "#") }
-  | reduce --fold {} {|line, acc|
+  | each { |line| $line | str trim }
+  | where { |line| $line != "" and not ($line | str starts-with "#") }
+  | reduce --fold {} { |line, acc|
     let parsed = ($line | parse --regex '^(?P<key>[A-Za-z_][A-Za-z0-9_]*)=(?P<value>.*)$')
     if ($parsed | is-empty) {
       $acc
@@ -44,9 +44,9 @@ export def get-setting [
   key: string
   default_value: any = null
 ] {
-  if ($env | columns | any {|column| $column == $key }) {
+  if ($env | columns | any { |column| $column == $key }) {
     $env | get $key
-  } else if ($settings | columns | any {|column| $column == $key }) {
+  } else if ($settings | columns | any { |column| $column == $key }) {
     $settings | get $key
   } else {
     $default_value

@@ -223,9 +223,9 @@ exit \"$status\"
     let dns_entries = (
       $dns_servers
       | split row ","
-      | each {|entry| $entry | str trim }
-      | where {|entry| $entry != "" }
-      | each {|entry| $"  - ($entry)" }
+      | each { |entry| $entry | str trim }
+      | where { |entry| $entry != "" }
+      | each { |entry| $"  - ($entry)" }
       | str join "\n"
     )
     $"dns:\n($dns_entries)"
