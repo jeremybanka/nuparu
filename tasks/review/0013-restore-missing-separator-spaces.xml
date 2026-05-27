@@ -1,0 +1,38 @@
+<task>
+  <id>0013</id>
+  <status>review</status>
+  <priority>P1</priority>
+  <title>Restore missing separator spaces in formatter output</title>
+  <summary>
+    The formatter now handles extra whitespace noise and reserved statement-head
+    boundaries much better, but it still preserves or emits some shapes where
+    required separator spaces have been removed.
+  </summary>
+  <problem>
+    A small new batch of fixture edits shows the opposite failure mode from the
+    earlier whitespace-collapse work: tokens that should be visually separated
+    remain jammed together after formatting. Current examples include typed
+    parameter forms like `instance_name?:string`, closure signatures like
+    `where {|entry|...}` that should normalize to `where { |entry| ... }`,
+    brace-adjacent record or error forms like
+    `msg: ...\"}`, and pipeline/call boundaries like `|save --force ...`. These
+    are formatter-scope spacing decisions, not semantic reconstruction.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/lima-ports.nu</file>
+    <file>fixtures/dotfiles/scrubs/download-latest-iso.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>crates/nuparu-core/src/__tests__/formatter.rs</path>
+    <path>tasks/review/0010-normalize-whitespace-noise-in-fixtures.xml</path>
+    <path>tasks/review/0011-finish-higher-order-whitespace-normalization.xml</path>
+    <path>tasks/review/0012-preserve-reserved-keyword-boundaries.xml</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Typed parameter and binding shapes restore the formatter's normal separator spacing around `:` and `?` boundaries where the syntax expects them.</criterion>
+    <criterion>Closure signatures and brace-adjacent forms restore the house spacing around `{`, `|`, and `}`, preferring forms like `{ |entry| ... }` instead of preserving jammed-together source text.</criterion>
+    <criterion>Pipeline and command boundaries restore missing spaces, including forms like `| save` rather than `|save`.</criterion>
+    <criterion>Regression tests are drawn from the real fixture residue in `lima-ports.nu` and `download-latest-iso.nu`, not only from synthetic one-liners.</criterion>
+  </acceptanceCriteria>
+</task>

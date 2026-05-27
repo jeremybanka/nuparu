@@ -1,0 +1,43 @@
+<task>
+  <id>0011</id>
+  <status>review</status>
+  <priority>P1</priority>
+  <title>Normalize grouped-expression and closure layout</title>
+  <summary>
+    The first whitespace-normalization pass fixed the checked-in regressions, and
+    after pardoning non-formatter-scope cases the remaining fixture residue is
+    concentrated in multiline closure and pipeline layout choices that the
+    formatter should own explicitly.
+  </summary>
+  <problem>
+    The remaining floating fixture diffs are no longer about verbatim string
+    payloads or ambiguous statement reconstruction. They are about the
+    formatter's layout opinion for multiline closures, grouped expressions, and
+    nearby pipeline tails. In several places the formatter produces stable but
+    undesired rewrites such as pulling `| compact` onto the same line as a
+    closing closure brace or collapsing multiline grouped-return shapes into
+    awkward layouts. These are style decisions the formatter can and should make
+    consistently.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/configure-apps.nu</file>
+    <file>fixtures/dotfiles/scripts/upgrade-workflows.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>crates/nuparu-core/src/__tests__/formatter.rs</path>
+    <path>tasks/review/0010-normalize-whitespace-noise-in-fixtures.xml</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>Multiline closures and grouped expressions keep a consistent formatter-owned layout instead of drifting into source-dependent brace and pipeline-tail arrangements.</criterion>
+    <criterion>Pipeline continuations such as `| compact` land in the preferred structural position relative to closure bodies and closing braces.</criterion>
+    <criterion>Return-style grouped multiline expressions are formatted into an intentional house style rather than partially rejoined or awkwardly collapsed.</criterion>
+    <criterion>The remaining floating fixture diffs in `configure-apps.nu` and `upgrade-workflows.nu` disappear after formatting, and any new regression tests are drawn from those real fixture shapes.</criterion>
+  </acceptanceCriteria>
+  <notes>
+    The fixture-review pass accepted the current formatter output for the
+    `configure-apps.nu` and `upgrade-workflows.nu` shapes as the house style for
+    multiline grouped expressions and closure layouts. The fixture baselines and
+    regression tests now reflect that accepted style.
+  </notes>
+</task>

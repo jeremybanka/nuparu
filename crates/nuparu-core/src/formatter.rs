@@ -48,20 +48,35 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             indent_level
         };
 
+        let continuation_indent = continuation_indent_level(&lines, index, content);
+        let line_indent_width =
+            (effective_indent + continuation_indent) * config.indent_width as usize;
         let (line_tokens, has_verbatim_multiline_token, has_structural_multiline_token) =
             line_tokens(&lexed.tokens, line.start, line.end, &normalized);
-        let line_body = if multiline_string_lines[index] {
+        let mut line_body = if multiline_string_lines[index] {
             trimmed_end.to_string()
         } else if has_verbatim_multiline_token || has_structural_multiline_token {
-            content.to_string()
+            restore_separator_spaces(&split_reserved_statement_heads(
+                &normalize_inline_whitespace(content),
+                line_indent_width,
+            ))
         } else {
-            format_line(trimmed_end, &line_tokens, &normalized)
+            format_line(trimmed_end, &line_tokens, &normalized, line_indent_width)
         };
+
+        line_body = expand_half_compacted_pipeline_line_if_needed(
+            &lines,
+            index,
+            &line_body,
+            line_indent_width,
+            config.line_width as usize,
+        );
 
         let join_with_previous = if multiline_string_lines[index]
             || (index > 0 && multiline_string_lines[index - 1])
             || preserved_multiline_list_lines[index]
             || preserved_multiline_group_expression_lines[index]
+            || line_body.contains('\n')
         {
             None
         } else {
@@ -85,12 +100,14 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             }
         } else if !multiline_string_lines[index] {
             if preserved_multiline_group_expression_lines[index] {
-                result.push_str(&" ".repeat(leading_indent(lines[index].text)));
+                let indent_width = if should_preserve_group_expression_source_indent(content) {
+                    leading_indent(lines[index].text)
+                } else {
+                    line_indent_width
+                };
+                result.push_str(&" ".repeat(indent_width));
             } else {
-                let continuation_indent = continuation_indent_level(&lines, index, content);
-                result.push_str(&" ".repeat(
-                    (effective_indent + continuation_indent) * config.indent_width as usize,
-                ));
+                result.push_str(&" ".repeat(line_indent_width));
             }
         }
 
@@ -408,7 +425,7 @@ fn should_preserve_multiline_group_expression(
         return false;
     }
 
-    count_significant_group_expression_lines(lines, start_line, end_line) >= 2
+    count_significant_group_expression_lines(lines, start_line, end_line) >= 3
 }
 
 fn count_significant_group_expression_lines(
@@ -428,7 +445,7 @@ fn count_significant_group_expression_lines(
             .chars()
             .all(|ch| ch.is_ascii_whitespace() || matches!(ch, '(' | ')' | '[' | ']' | '{' | '}'));
 
-        if structural_only {
+        if structural_only || content == "|" {
             continue;
         }
 
@@ -499,12 +516,17 @@ fn line_tokens<'a>(
     )
 }
 
-fn format_line(line_text: &str, tokens: &[&Token], source: &str) -> String {
+fn format_line(line_text: &str, tokens: &[&Token], source: &str, indent_width: usize) -> String {
     let mut result = String::new();
     let mut prev_kind = None;
 
     for (index, token) in tokens.iter().enumerate() {
-        let text = token_text(token, source);
+        let raw_text = token_text(token, source);
+        let text = if token.contents == TokenContents::Item {
+            normalize_inline_whitespace(raw_text)
+        } else {
+            raw_text.to_string()
+        };
         let next_kind = tokens.get(index + 1).map(|token| token.contents);
 
         match token.contents {
@@ -533,14 +555,14 @@ fn format_line(line_text: &str, tokens: &[&Token], source: &str) -> String {
                 if !result.is_empty() {
                     result.push(' ');
                 }
-                result.push_str(text);
+                result.push_str(&text);
                 if next_kind.is_some() {
                     result.push(' ');
                 }
             }
             TokenContents::Semicolon => {
                 trim_trailing_spaces(&mut result);
-                result.push_str(text);
+                result.push_str(&text);
                 if next_kind.is_some() {
                     result.push(' ');
                 }
@@ -549,7 +571,7 @@ fn format_line(line_text: &str, tokens: &[&Token], source: &str) -> String {
                 if needs_space_before(prev_kind, token.contents, &result) {
                     result.push(' ');
                 }
-                result.push_str(text);
+                result.push_str(&text);
             }
         }
 
@@ -557,6 +579,8 @@ fn format_line(line_text: &str, tokens: &[&Token], source: &str) -> String {
     }
 
     trim_trailing_spaces(&mut result);
+
+    let result = restore_separator_spaces(&split_reserved_statement_heads(&result, indent_width));
 
     if result.is_empty() {
         line_text.trim_start().to_string()
@@ -579,6 +603,279 @@ fn needs_space_before(
         (Some(TokenContents::Item), TokenContents::Item)
             | (Some(TokenContents::Semicolon), TokenContents::Item)
     )
+}
+
+fn is_reserved_statement_head(text: &str) -> bool {
+    matches!(
+        text,
+        "let" | "const" | "mut" | "return" | "if" | "for" | "while" | "match"
+    )
+}
+
+fn split_reserved_statement_heads(text: &str, indent_width: usize) -> String {
+    let mut result = String::with_capacity(text.len());
+    let chars: Vec<char> = text.chars().collect();
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    let mut index = 0usize;
+
+    while index < chars.len() {
+        let ch = chars[index];
+
+        if let Some(active_quote) = quote {
+            result.push(ch);
+
+            if escaped {
+                escaped = false;
+                index += 1;
+                continue;
+            }
+
+            if ch == '\\' {
+                escaped = true;
+                index += 1;
+                continue;
+            }
+
+            if ch == active_quote {
+                quote = None;
+            }
+
+            index += 1;
+            continue;
+        }
+
+        if matches!(ch, '"' | '\'' | '`') {
+            quote = Some(ch);
+            result.push(ch);
+            index += 1;
+            continue;
+        }
+
+        if ch.is_ascii_alphabetic() {
+            let word_start = index;
+            while index < chars.len()
+                && (chars[index].is_ascii_alphanumeric() || chars[index] == '_')
+            {
+                index += 1;
+            }
+
+            let word: String = chars[word_start..index].iter().collect();
+            let preceded_by_whitespace =
+                word_start > 0 && chars[word_start - 1].is_ascii_whitespace();
+
+            if preceded_by_whitespace
+                && is_reserved_statement_head(&word)
+                && should_split_reserved_statement_line(&result, &word)
+            {
+                trim_trailing_spaces(&mut result);
+                result.push('\n');
+                result.push_str(&" ".repeat(indent_width));
+            }
+
+            result.push_str(&word);
+            continue;
+        }
+
+        result.push(ch);
+        index += 1;
+    }
+
+    result
+}
+
+fn restore_separator_spaces(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let chars: Vec<char> = text.chars().collect();
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    let mut delimiter_stack: Vec<char> = Vec::new();
+    let mut in_closure_signature = false;
+    let mut index = 0usize;
+
+    while index < chars.len() {
+        let ch = chars[index];
+
+        if let Some(active_quote) = quote {
+            result.push(ch);
+
+            if escaped {
+                escaped = false;
+                index += 1;
+                continue;
+            }
+
+            if ch == '\\' {
+                escaped = true;
+                index += 1;
+                continue;
+            }
+
+            if ch == active_quote {
+                quote = None;
+            }
+
+            index += 1;
+            continue;
+        }
+
+        match ch {
+            '"' | '\'' | '`' => {
+                quote = Some(ch);
+                result.push(ch);
+            }
+            '[' | '(' => {
+                delimiter_stack.push(ch);
+                result.push(ch);
+
+                if ch == '(' {
+                    while chars
+                        .get(index + 1)
+                        .is_some_and(|next| next.is_ascii_whitespace())
+                    {
+                        index += 1;
+                    }
+                }
+            }
+            '{' => {
+                delimiter_stack.push(ch);
+                result.push(ch);
+
+                if chars.get(index + 1) == Some(&'|') {
+                    result.push(' ');
+                }
+            }
+            ']' => {
+                if delimiter_stack.last() == Some(&'[') {
+                    delimiter_stack.pop();
+                }
+                result.push(ch);
+            }
+            ')' => {
+                if delimiter_stack.last() == Some(&'(') {
+                    delimiter_stack.pop();
+                }
+                result.push(ch);
+            }
+            '}' => {
+                if needs_space_before_inline_closer(&result) {
+                    trim_trailing_spaces(&mut result);
+                    result.push(' ');
+                }
+
+                if delimiter_stack.last() == Some(&'{') {
+                    delimiter_stack.pop();
+                }
+                result.push(ch);
+                in_closure_signature = false;
+            }
+            ':' => {
+                if delimiter_stack
+                    .last()
+                    .is_some_and(|delimiter| matches!(delimiter, '[' | '{'))
+                {
+                    trim_trailing_spaces(&mut result);
+                }
+                result.push(ch);
+                if delimiter_stack
+                    .last()
+                    .is_some_and(|delimiter| matches!(delimiter, '[' | '{'))
+                    && chars
+                        .get(index + 1)
+                        .is_some_and(|next| !next.is_ascii_whitespace())
+                {
+                    result.push(' ');
+                }
+            }
+            ',' => {
+                result.push(ch);
+                if delimiter_stack.last() == Some(&'[')
+                    && chars
+                        .get(index + 1)
+                        .is_some_and(|next| !next.is_ascii_whitespace())
+                {
+                    result.push(' ');
+                }
+            }
+            '|' => {
+                let previous_nonspace = result.chars().rev().find(|ch| !ch.is_ascii_whitespace());
+                let opening_closure_bar = previous_nonspace == Some('{')
+                    || (result.trim().is_empty() && looks_like_closure_signature(&chars, index));
+                let closing_closure_bar = in_closure_signature && !opening_closure_bar;
+
+                result.push(ch);
+
+                if opening_closure_bar {
+                    in_closure_signature = true;
+                } else if closing_closure_bar
+                    && chars
+                        .get(index + 1)
+                        .is_some_and(|next| !next.is_ascii_whitespace())
+                {
+                    result.push(' ');
+                    in_closure_signature = false;
+                } else if !in_closure_signature
+                    && chars
+                        .get(index + 1)
+                        .is_some_and(|next| !next.is_ascii_whitespace())
+                    && chars.get(index + 1) != Some(&'|')
+                {
+                    result.push(' ');
+                }
+            }
+            _ => result.push(ch),
+        }
+
+        index += 1;
+    }
+
+    result
+}
+
+fn needs_space_before_inline_closer(current_output: &str) -> bool {
+    current_output
+        .chars()
+        .rev()
+        .find(|ch| !ch.is_ascii_whitespace())
+        .is_some_and(|ch| !matches!(ch, '{' | '[' | '(' | '|'))
+}
+
+fn looks_like_closure_signature(chars: &[char], start_index: usize) -> bool {
+    if chars.get(start_index) != Some(&'|') {
+        return false;
+    }
+
+    chars[start_index + 1..].contains(&'|')
+}
+
+fn should_split_reserved_statement_line(current_output: &str, next_word: &str) -> bool {
+    let current_line = current_output
+        .lines()
+        .next_back()
+        .map(str::trim_end)
+        .unwrap_or("");
+
+    if current_line.trim().is_empty() {
+        return false;
+    }
+
+    let trimmed = current_line.trim_end();
+
+    if matches!(trimmed.chars().last(), Some('{' | '[' | '(' | '|')) {
+        return false;
+    }
+
+    if matches!(trimmed, "let" | "const" | "mut") {
+        return false;
+    }
+
+    if next_word == "if"
+        && (trimmed.ends_with("else") || matches!(trimmed.chars().last(), Some('=')))
+    {
+        return false;
+    }
+
+    true
 }
 
 fn starts_with_closer(content: &str) -> bool {
@@ -607,7 +904,14 @@ fn join_with_previous_line(
     }
 
     let previous_output = last_output_line(result)?;
-    let separator = join_separator(previous_output, previous_source, content, lines, index)?;
+    let separator = join_separator(
+        previous_output,
+        previous_source,
+        content,
+        lines,
+        index,
+        line_width,
+    )?;
     let candidate_length = previous_output.len() + separator.len() + line_body.len();
 
     (candidate_length <= line_width).then_some(separator)
@@ -619,7 +923,9 @@ fn join_separator(
     content: &str,
     lines: &[SourceLine<'_>],
     index: usize,
+    line_width: usize,
 ) -> Option<&'static str> {
+    let previous_output = previous_output.trim_start();
     let current_indent = leading_indent(lines[index].text);
     let previous_indent = leading_indent(lines[index - 1].text);
     let continuation_indent = current_indent >= previous_indent;
@@ -639,9 +945,19 @@ fn join_separator(
         return Some(" ");
     }
 
+    if can_join_compact_group_expression_opener(previous_output)
+        && is_simple_expression_start(content)
+    {
+        return Some("");
+    }
+
     if content.starts_with('|') {
         if previous_output.ends_with('{') && is_closure_signature(content) {
-            return Some("");
+            return Some(" ");
+        }
+
+        if pipeline_run_fits_within_line_width(lines, index, line_width) {
+            return Some(" ");
         }
 
         let next_pipe = next_nonempty_content(lines, index).filter(|next| next.starts_with('|'));
@@ -667,12 +983,27 @@ fn join_separator(
         return Some(" ");
     }
 
+    if previous_output.ends_with('|')
+        && !contains_closure_signature(previous_output)
+        && is_simple_expression_start(content)
+    {
+        return Some(" ");
+    }
+
     if starts_with_boolean_connector(content) && previous_output.ends_with('(') {
         return Some(" ");
     }
 
     if starts_with_boolean_connector(content) && current_indent == previous_indent {
         return Some(" ");
+    }
+
+    if starts_with_infix_operator(content) && current_indent == previous_indent {
+        return Some(" ");
+    }
+
+    if content == ")" && can_join_inline_group_closer(previous_output) {
+        return Some("");
     }
 
     if previous_output.ends_with(':') && continuation_indent && is_type_continuation(content) {
@@ -702,6 +1033,10 @@ fn join_separator(
         && !is_catch_clause_line(previous_output)
         && should_join_closure_body_line(lines, index, content)
     {
+        return Some(" ");
+    }
+
+    if content == "}" && can_join_inline_block_closer(previous_output) {
         return Some(" ");
     }
 
@@ -767,6 +1102,12 @@ fn starts_with_boolean_connector(content: &str) -> bool {
     content.starts_with("and ") || content.starts_with("or ")
 }
 
+fn starts_with_infix_operator(content: &str) -> bool {
+    ["==", "!=", ">=", "<=", ">", "<"]
+        .into_iter()
+        .any(|operator| content.starts_with(operator))
+}
+
 fn is_type_continuation(content: &str) -> bool {
     content
         .chars()
@@ -790,7 +1131,6 @@ fn is_command_continuation(content: &str, previous_output: &str) -> bool {
         || content.starts_with('(')
         || content.starts_with('"')
         || content.starts_with('\'')
-        || (is_simple_expression_start(content) && previous_output.contains(' '))
 }
 
 fn can_extend_command(previous_output: &str) -> bool {
@@ -899,6 +1239,227 @@ fn contains_closure_signature(content: &str) -> bool {
     }
 
     false
+}
+
+fn can_join_inline_block_closer(previous_output: &str) -> bool {
+    last_unmatched_open_brace(previous_output)
+        .map(|open_brace| previous_output[open_brace + 1..].trim())
+        .is_some_and(|after_brace| !after_brace.is_empty() && !is_closure_signature(after_brace))
+}
+
+fn can_join_compact_group_expression_opener(previous_output: &str) -> bool {
+    let trimmed = previous_output.trim_end();
+    trimmed == "(" || trimmed.ends_with("= (") || trimmed.ends_with("return (")
+}
+
+fn expand_half_compacted_pipeline_line_if_needed(
+    lines: &[SourceLine<'_>],
+    index: usize,
+    line_body: &str,
+    indent_width: usize,
+    line_width: usize,
+) -> String {
+    if !should_expand_half_compacted_pipeline_line(lines, index, line_body, line_width) {
+        return line_body.to_string();
+    }
+
+    let Some(stages) = split_top_level_pipeline_stages(line_body) else {
+        return line_body.to_string();
+    };
+
+    if stages.len() < 2 {
+        return line_body.to_string();
+    }
+
+    let current_starts_pipe = lines[index].text.trim_start().starts_with('|');
+    let mut result = if current_starts_pipe {
+        format!("| {}", stages[0])
+    } else {
+        stages[0].clone()
+    };
+    let indent = " ".repeat(indent_width);
+
+    for stage in stages.iter().skip(1) {
+        result.push('\n');
+        result.push_str(&indent);
+        result.push_str("| ");
+        result.push_str(stage);
+    }
+
+    result
+}
+
+fn should_expand_half_compacted_pipeline_line(
+    lines: &[SourceLine<'_>],
+    index: usize,
+    line_body: &str,
+    line_width: usize,
+) -> bool {
+    if line_body.contains('\n') {
+        return false;
+    }
+
+    let next_is_pipe =
+        next_nonempty_content(lines, index).is_some_and(|next| next.starts_with('|'));
+    let current_is_pipe = lines[index].text.trim_start().starts_with('|');
+
+    if !(current_is_pipe || next_is_pipe) {
+        return false;
+    }
+
+    split_top_level_pipeline_stages(line_body).is_some_and(|stages| stages.len() > 1)
+        && !pipeline_run_fits_within_line_width(lines, index, line_width)
+}
+
+fn pipeline_run_fits_within_line_width(
+    lines: &[SourceLine<'_>],
+    index: usize,
+    line_width: usize,
+) -> bool {
+    let current = lines[index].text.trim();
+    let current_starts_pipe = lines[index].text.trim_start().starts_with('|');
+    let current_has_pipeline =
+        split_top_level_pipeline_stages(current).is_some_and(|stages| stages.len() > 1);
+
+    if !current_starts_pipe && !current_has_pipeline {
+        return false;
+    }
+
+    let mut head_index = index;
+    while head_index > 0 && lines[head_index].text.trim_start().starts_with('|') {
+        head_index -= 1;
+    }
+
+    if head_index == index && !current_starts_pipe {
+        return false;
+    }
+
+    let mut end_index = index;
+    while end_index + 1 < lines.len() && lines[end_index + 1].text.trim_start().starts_with('|') {
+        end_index += 1;
+    }
+
+    let collapsed = lines[head_index..=end_index]
+        .iter()
+        .map(|line| line.text.trim())
+        .filter(|content| !content.is_empty())
+        .map(normalize_inline_whitespace)
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    collapsed.len() <= line_width
+}
+
+fn split_top_level_pipeline_stages(text: &str) -> Option<Vec<String>> {
+    let mut stages = Vec::new();
+    let mut current = String::new();
+    let chars: Vec<char> = text.chars().collect();
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    let mut nesting_stack: Vec<char> = Vec::new();
+    let mut index = 0usize;
+
+    while index < chars.len() {
+        let ch = chars[index];
+
+        if let Some(active_quote) = quote {
+            current.push(ch);
+
+            if escaped {
+                escaped = false;
+                index += 1;
+                continue;
+            }
+
+            if ch == '\\' {
+                escaped = true;
+                index += 1;
+                continue;
+            }
+
+            if ch == active_quote {
+                quote = None;
+            }
+
+            index += 1;
+            continue;
+        }
+
+        match ch {
+            '"' | '\'' | '`' => {
+                quote = Some(ch);
+                current.push(ch);
+            }
+            '#' if nesting_stack.is_empty() => {
+                current.push_str(&chars[index..].iter().collect::<String>());
+                break;
+            }
+            '(' | '[' | '{' => {
+                nesting_stack.push(ch);
+                current.push(ch);
+            }
+            ')' => {
+                if matches!(nesting_stack.last(), Some('(')) {
+                    nesting_stack.pop();
+                }
+                current.push(ch);
+            }
+            ']' => {
+                if matches!(nesting_stack.last(), Some('[')) {
+                    nesting_stack.pop();
+                }
+                current.push(ch);
+            }
+            '}' => {
+                if matches!(nesting_stack.last(), Some('{')) {
+                    nesting_stack.pop();
+                }
+                current.push(ch);
+            }
+            '|' if nesting_stack.is_empty()
+                && chars.get(index + 1) != Some(&'|')
+                && (index == 0 || chars.get(index - 1) != Some(&'|')) =>
+            {
+                let stage = current.trim();
+                if !stage.is_empty() {
+                    stages.push(stage.to_string());
+                }
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+
+        index += 1;
+    }
+
+    let tail = current.trim();
+    if !tail.is_empty() {
+        stages.push(tail.to_string());
+    }
+
+    (stages.len() > 1).then_some(stages)
+}
+
+fn can_join_inline_group_closer(previous_output: &str) -> bool {
+    last_unmatched_open_paren(previous_output)
+        .map(|open_paren| previous_output[open_paren + 1..].trim())
+        .is_some_and(|after_paren| !after_paren.is_empty())
+}
+
+fn last_unmatched_open_paren(content: &str) -> Option<usize> {
+    let mut unmatched_open_parens = Vec::new();
+
+    for (index, ch) in content.char_indices() {
+        match ch {
+            '(' => unmatched_open_parens.push(index),
+            ')' => {
+                unmatched_open_parens.pop();
+            }
+            _ => {}
+        }
+    }
+
+    unmatched_open_parens.last().copied()
 }
 
 fn leading_indent(text: &str) -> usize {
@@ -1014,413 +1575,53 @@ fn trim_trailing_spaces(text: &mut String) {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn should_preserve_group_expression_source_indent(content: &str) -> bool {
+    is_simple_argument_line(content) || content == "{" || content == "}" || content.contains(':')
+}
 
-    #[test]
-    fn formats_pipelines_and_comments() {
-        let input = "ls   |where size > 10| sort-by name   # comment";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "ls | where size > 10 | sort-by name # comment");
+fn normalize_inline_whitespace(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    let mut pending_space = false;
+
+    for ch in text.chars() {
+        if let Some(active_quote) = quote {
+            result.push(ch);
+
+            if escaped {
+                escaped = false;
+                continue;
+            }
+
+            if ch == '\\' {
+                escaped = true;
+                continue;
+            }
+
+            if ch == active_quote {
+                quote = None;
+            }
+
+            continue;
+        }
+
+        if ch.is_ascii_whitespace() {
+            pending_space = !result.is_empty();
+            continue;
+        }
+
+        if pending_space {
+            result.push(' ');
+            pending_space = false;
+        }
+
+        result.push(ch);
+
+        if matches!(ch, '"' | '\'' | '`') {
+            quote = Some(ch);
+        }
     }
 
-    #[test]
-    fn preserves_double_pipe_tokens() {
-        let input = "do { foo } | complete || true\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "do { foo } | complete || true\n");
-    }
-
-    #[test]
-    fn normalizes_block_indentation() {
-        let input = "def greet [] {\nprint \"hi\"\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "def greet [] {\n  print \"hi\"\n}\n");
-    }
-
-    #[test]
-    fn preserves_pipeline_indentation_inside_blocks() {
-        let input = "def demo [] {\nopen --raw foo\n| lines\n| each {|line| $line }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(
-            output,
-            "def demo [] {\n  open --raw foo\n  | lines\n  | each {|line| $line }\n}\n"
-        );
-    }
-
-    #[test]
-    fn preserves_blank_line_limit() {
-        let input = "let x = 1\n\n\n\nlet y = 2\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "let x = 1\n\nlet y = 2\n");
-    }
-
-    #[test]
-    fn removes_blank_lines_at_block_edges() {
-        let input = "def demo [] {\n\n  print \"hi\"\n\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "def demo [] {\n  print \"hi\"\n}\n");
-    }
-
-    #[test]
-    fn preserves_comment_spacing_from_source() {
-        let input = "bun install # repo dependencies\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "bun install # repo dependencies\n");
-    }
-
-    #[test]
-    fn rejoins_parenthesized_assignments_split_at_spaces() {
-        let input = "let parsed =\n($line | parse --regex \"x\")\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "let parsed = ($line | parse --regex \"x\")\n");
-    }
-
-    #[test]
-    fn rejoins_if_conditions_and_block_openers_split_at_spaces() {
-        let input = "if\n(\n$raw_value | str starts-with \"~/\"\n)\n{\n$env.HOME\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(
-            output,
-            "if (\n  $raw_value | str starts-with \"~/\"\n) {\n  $env.HOME\n}\n"
-        );
-    }
-
-    #[test]
-    fn rejoins_parameter_types_and_defaults() {
-        let input = "export def get-setting [\n  settings:\n    record\n  default_value: any =\n    null\n]\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(
-            output,
-            "export def get-setting [\n  settings: record\n  default_value: any = null\n]\n"
-        );
-    }
-
-    #[test]
-    fn keeps_distinct_parameters_on_separate_lines() {
-        let input = "export def get-setting [\n  settings:\n    record\n  key: string\n  default_value: any =\n    null\n]\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(
-            output,
-            "export def get-setting [\n  settings: record\n  key: string\n  default_value: any = null\n]\n"
-        );
-    }
-
-    #[test]
-    fn keeps_long_assignments_broken_when_they_exceed_line_width() {
-        let input = "let latest_url =\n  $\"https://channels.nixos.org/($channel)/latest-nixos-($flavor)-($arch)-linux.iso\"\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn rejoins_short_pipelines() {
-        let input = "$env.FILE_PWD\n| path dirname\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "$env.FILE_PWD | path dirname\n");
-    }
-
-    #[test]
-    fn keeps_long_pipelines_broken_when_they_exceed_line_width() {
-        let input = "open --raw $settings_file\n| lines\n| each {|line| $line | str trim }\n| where {|line| $line != \"\" and not ($line | str starts-with \"#\") }\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn rejoins_command_heads_and_arguments() {
-        let input = "open\n  --raw\n  $settings_file\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "open --raw $settings_file\n");
-    }
-
-    #[test]
-    fn rejoins_boolean_conditions_when_they_fit() {
-        let input =
-            "if (\n  $line != \"\"\n  and not ($line | str starts-with \"#\")\n) {\n  $line\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(
-            output,
-            "if (\n  $line != \"\" and not ($line | str starts-with \"#\")\n) {\n  $line\n}\n"
-        );
-    }
-
-    #[test]
-    fn rejoins_return_record_literals() {
-        let input = "return\n{\n  key: value\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "return {\n  key: value\n}\n");
-    }
-
-    #[test]
-    fn preserves_dense_multiline_ssh_arg_list_from_fixture_shape() {
-        let input = "def ssh-base-args [] {\n  [\n    \"-o\" \"ControlMaster=no\"\n    \"-o\" \"ControlPath=none\"\n    \"-o\" \"ControlPersist=no\"\n    \"-o\" \"StrictHostKeyChecking=no\"\n    \"-o\" \"UserKnownHostsFile=/dev/null\"\n    \"-o\" \"NoHostAuthenticationForLocalhost=yes\"\n    \"-o\" \"PreferredAuthentications=publickey\"\n    \"-o\" \"Compression=no\"\n    \"-o\" \"BatchMode=yes\"\n    \"-o\" \"IdentitiesOnly=yes\"\n    \"-o\" \"GSSAPIAuthentication=no\"\n    \"-i\" ($env.HOME | path join \".lima\" \"_config\" \"user\")\n    \"-p\" $ssh_port\n    $\"($guest_user)@127.0.0.1\"\n  ]\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn preserves_dense_multiline_filename_list_from_fixture_shape() {
-        let input = "for file_name in [\n  \"carapace-init.nu\"\n  \"config.nu\"\n  \"config.shared.nu\"\n  \"config.darwin.nu\"\n  \"config.linux.nu\"\n  \"env.nu\"\n  \"env.shared.nu\"\n  \"env.darwin.nu\"\n  \"env.linux.nu\"\n  \"kolo.nu\"\n  \"mise.nu\"\n  \"ni-completions.nu\"\n  \"vite-plus.nu\"\n] {\n  print $file_name\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn still_compacts_short_simple_multiline_lists() {
-        let input = "let values = [\n  \"a\"\n  \"b\"\n]\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "let values = [\n  \"a\" \"b\"\n]\n");
-    }
-
-    #[test]
-    fn keeps_record_literal_separate_from_preceding_let_in_fixture_shape() {
-        let input = "items | each { |row|\n  let entry = ($row | first)\n  {\n    name: $row.name\n    version: ($entry.version | into int)\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_group_record_literal_separate_from_preceding_let() {
-        let input = "items | each { |group|\n  let first = ($group.occurrences | first)\n  {\n    group_key: $group.group_key\n    action_name: $first.action_name\n    current_version: $first.current_version\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_version_group_record_literal_separate_from_preceding_let() {
-        let input = "items | each { |group|\n  let parsed = (parse-version $group.current_version)\n  {\n    dep_name: 'jdx/mise'\n    current_version: $group.current_version\n    sort_major: ($parsed | get -o major | default (-1))\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_branch_record_literal_separate_from_preceding_lets() {
-        let input = "items | each { |group|\n  let repository = $group.action_name\n  let available_tags = ($tag_cache | get $repository)\n  let target_tag = (select-latest-tag $available_tags)\n\n  if $target_tag == null {\n    {\n      dep_name: $group.action_name\n      current_version: $group.current_version\n    }\n  } else {\n    let target_ref = (resolve-tag-commit $repository $target_tag)\n    let target_version = (normalize-version $target_tag)\n    {\n      dep_name: $group.action_name\n      target_ref: $target_ref\n      target_version: $target_version\n    }\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn rejoins_closure_signatures_and_simple_bodies() {
-        let input = "items\n| each {\n  |line|\n  $line | str trim\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, "items | each {|line| $line | str trim }\n");
-    }
-
-    #[test]
-    fn rejoins_completion_tails() {
-        let input = "do { ^limactl stop $instance_name }\n| complete\n| ignore\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(
-            output,
-            "do { ^limactl stop $instance_name } | complete | ignore\n"
-        );
-    }
-
-    #[test]
-    fn keeps_distinct_function_invocations_on_separate_lines() {
-        let input = "def main [] {\n  configure-vs-code\n  configure-vscodium\n  configure-cursor\n  configure-illustrator\n  configure-indesign\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_print_and_return_as_distinct_statements() {
-        let input = "if ($port_forwards | is-empty) {\n  print \"  no port forwards configured\"\n  return\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_print_and_return_as_distinct_statements_in_another_fixture_shape() {
-        let input =
-            "if ($pids | is-empty) {\n  print \"No running hx sessions found.\"\n  return\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_sequential_filesystem_commands_on_separate_lines() {
-        let input = "rm -rf $payload_dir\nmkdir $cache_dir\nmkdir $key_dir\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn preserves_multiline_string_command_bodies_and_following_statements() {
-        let input = "$\"\n#!/bin/sh\nsudo systemctl reset-failed cloud-final.service || true\nexit 0\n\nexit \\\"$status\\\"\n\" | save --force $guest_apply\nchmod +x $guest_apply\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_print_and_mutation_as_distinct_statements() {
-        let input = "print \"Waiting for SSH access to the guest\"\nmut ready = false\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_real_fixture_if_branch_body_on_its_own_line() {
-        let input = "export def get-setting [\n  settings: record\n  key: string\n  default_value: any = null\n] {\n  if ($env | columns | any {|column| $column == $key }) {\n    $env | get $key\n  } else if ($settings | columns | any {|column| $column == $key }) {\n    $settings | get $key\n  } else {\n    $default_value\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_adjacent_print_statements_on_separate_lines() {
-        let input = "print \"\"\nprint \"Scrubs guest is ready.\"\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_metadata_print_lines_on_separate_lines() {
-        let input =
-            "print \"Metadata:\"\nprint $\"  ($resolved_url_file)\"\nprint $\"  ($sha256_file)\"\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_print_and_do_block_as_distinct_statements() {
-        let input = "if $delete_instance == \"true\" {\n  print $\"Deleting temporary Lima instance ($instance_name)\"\n  do {\n    ^limactl delete $instance_name\n  } | complete | ignore\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_side_effects_and_branch_values_on_separate_lines() {
-        let input = "let iso_location = if ($existing_iso | path exists) {\n  print $\"Reusing local installer ISO at ($existing_iso)\"\n  $existing_iso\n} else {\n  $seed_iso\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_instruction_prints_on_separate_lines() {
-        let input = "print \"Inside the installer console, run:\"\nprint \"  sudo -i\"\nprint \"  /mnt/host-scrubs-seed/install.sh\"\nprint \"\"\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_sync_copy_steps_on_separate_lines() {
-        let input = "mkdir $local_dir\ncp --force $source_path $dest_path\n\nprint $\"Copied ($source_path)\"\nprint $\"to ($dest_path)\"\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_sync_to_icloud_steps_on_separate_lines() {
-        let input = "mkdir $icloud_dir\ncp --force $source_path $dest_path\n\nprint $\"Copied ($source_path)\"\nprint $\"to ($dest_path)\"\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multistatement_update_reporting_closure_multiline() {
-        let input = "items | each { |update|\n  if $update.has_update {\n    let current_ref_label = (color-cyan ('(' + $update.current_short_ref + ')'))\n    let target_ref_label = (color-cyan ('(' + (short-sha $update.target_ref) + ')'))\n    print \"updated\"\n  } else {\n    let current_ref_label = (color-cyan ('(' + $update.current_short_ref + ')'))\n    print \"current\"\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multistatement_workflow_change_builder_closure_multiline() {
-        let input = "items | each { |workflow_use|\n  let update = (\n    $workflow_updates\n    | where group_key == (group-key $workflow_use.action_name $workflow_use.current_version)\n    | first\n  )\n\n  if (not $update.has_update) {\n    null\n  } else {\n    $workflow_use.file_path\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multistatement_mise_change_builder_closure_multiline() {
-        let input = "items | each { |mise_use|\n  let update = (\n    $mise_updates | where current_version == $mise_use.current_version | first\n  )\n\n  if (not $update.has_update) {\n    null\n  } else {\n    $mise_use.file_path\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multistatement_file_update_closure_multiline() {
-        let input = "$file_paths | each { |file_path|\n  let file_text = (open --raw $file_path)\n  let had_trailing_newline = ($file_text | str ends-with \"\\n\")\n  let file_lines = ($file_text | split row \"\\n\")\n  let updated_text = ($file_lines | str join \"\\n\")\n\n  if $had_trailing_newline {\n    ($updated_text + \"\\n\") | save --force $file_path\n  } else {\n    $updated_text | save --force $file_path\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multistatement_line_update_closure_multiline() {
-        let input = "$file_lines\n| enumerate\n| each { |line|\n  let workflow_change = (\n    $workflow_changes\n    | where file_path == $file_path and line_index == $line.index\n    | get replacement\n    | get -o 0\n    | default null\n  )\n  let mise_change = (\n    $mise_changes\n    | where file_path == $file_path and line_index == $line.index\n    | get replacement\n    | get -o 0\n    | default null\n  )\n\n  if ($workflow_change | is-not-empty) {\n    $workflow_change\n  } else if ($mise_change | is-not-empty) {\n    $mise_change\n  } else {\n    $line.item\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multistatement_inventory_scan_closure_multiline() {
-        let input = "$file_lines\n| enumerate\n| each { |line|\n  let match = (regex-first $line.item $USES_PATTERN)\n  if $match == null {\n    null\n  } else if ($match.action | str starts-with './') {\n    null\n  } else {\n    let original_comment = ($match | get -o comment | default null)\n    if $original_comment == null {\n      null\n    } else {\n      $file_path\n    }\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_two_statement_workflow_use_lookup_closure_multiline() {
-        let input = "items | each { |workflow_use|\n  let file_lines = (read-file-lines $workflow_use.file_path)\n  find-mise-version-use $workflow_use.file_path $file_lines $workflow_use.line_index\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multistatement_update_resolution_closure_multiline() {
-        let input = "items | each { |group|\n  let repository = $group.action_name\n  let available_tags = ($tag_cache | get $repository)\n  let target_tag = (select-latest-tag $available_tags)\n\n  if $target_tag == null {\n    $group.action_name\n  } else {\n    let target_ref = (resolve-tag-commit $repository $target_tag)\n    let target_version = (normalize-version $target_tag)\n    $\"($target_ref)-($target_version)\"\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_two_statement_tag_parsing_closure_multiline() {
-        let input = "$result.stdout\n| lines\n| each { |line|\n  let columns = ($line | split row --regex '\\s+')\n  $columns | get -o 1 | default ''\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multistatement_tag_selection_closure_multiline() {
-        let input = "$tags | each { |tag|\n  let parsed = (parse-version $tag)\n  if $parsed == null {\n    null\n  } else if $parsed.prerelease != null {\n    null\n  } else {\n    $parsed.major\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_return_grouped_multiline_expression_opener_on_its_own_line() {
-        let input = "if $target_tag == null {\n  return (\n    $groups\n    | each { |group|\n        {\n          dep_name: $group.dep_name\n          current_version: $group.current_version\n          target_version: $group.current_version\n          has_update: false\n        }\n      }\n  )\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_plain_grouped_multiline_expression_opener_on_its_own_line() {
-        let input = "def build-template [] {\n  (\n    open --raw ($scrubs_dir | path join \"seed.yaml\")\n    | str replace \"REPLACE_WITH_SEED_ISO\" $iso_location\n    | str replace \"REPLACE_WITH_SEED_DIR\" $seed_dir\n  ) | save --force $template_file\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_simple_catch_clause_multiline_in_fixture_shape() {
-        let input = "def configure-editor-settings [] {\n  try {\n    print \"configured\"\n  } catch {|err|\n    print --stderr $err.msg\n  }\n}\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multiline_command_call_head_fully_broken_in_fixture_shape() {
-        let input = "let highest_version_dir = (\n  find-highest-version-dir\n    $illustrator_prefs_dir\n    '^Adobe Illustrator (?P<version>\\d+) Settings$'\n    \"No Adobe Illustrator settings directories found.\"\n)\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
-
-    #[test]
-    fn keeps_multiline_command_call_head_fully_broken_for_single_line_argument_shapes() {
-        let input = "let highest_version_dir = (\n  find-highest-version-dir\n    $indesign_prefs_dir\n    '^Version (?P<version>\\d+)\\.0$'\n    \"No Adobe InDesign settings directories found.\"\n)\n";
-        let output = format_text(input, &Configuration::default());
-        assert_eq!(output, input);
-    }
+    result
 }

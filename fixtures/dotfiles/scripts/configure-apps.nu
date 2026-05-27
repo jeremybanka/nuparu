@@ -72,7 +72,7 @@ def configure-editor-settings [app_name: string, application_support_dir_name: s
       ^ln -s $source_path $target_path
       print $"Symlink created: ($source_path) -> ($target_path)"
     }
-  } catch {|err|
+  } catch { |err|
     print --stderr $err.msg
   }
 }
@@ -89,7 +89,7 @@ def configure-illustrator [] {
   let matching_dirs = (
     ls $illustrator_prefs_dir
     | where type == "dir"
-    | where {|row| (($row.name | path basename) | parse --regex '^Adobe Illustrator (?P<version>\d+) Settings$' | is-not-empty) }
+    | where { |row| (($row.name | path basename) | parse --regex '^Adobe Illustrator (?P<version>\d+) Settings$' | is-not-empty) }
   )
 
   if ($matching_dirs | is-empty) {
@@ -98,10 +98,9 @@ def configure-illustrator [] {
   }
 
   let highest_version_dir = (
-    find-highest-version-dir
-      $illustrator_prefs_dir
-      '^Adobe Illustrator (?P<version>\d+) Settings$'
-      "No Adobe Illustrator settings directories found."
+    find-highest-version-dir $illustrator_prefs_dir
+    '^Adobe Illustrator (?P<version>\d+) Settings$'
+    "No Adobe Illustrator settings directories found."
   )
   let target_workspaces_dir = ($highest_version_dir | path join "en_US" "Workspaces")
 
@@ -120,7 +119,7 @@ def configure-indesign [] {
   let matching_dirs = (
     ls $indesign_prefs_dir
     | where type == "dir"
-    | where {|row| (($row.name | path basename) | parse --regex '^Version (?P<version>\d+)\.0$' | is-not-empty) }
+    | where { |row| (($row.name | path basename) | parse --regex '^Version (?P<version>\d+)\.0$' | is-not-empty) }
   )
 
   if ($matching_dirs | is-empty) {
@@ -129,10 +128,9 @@ def configure-indesign [] {
   }
 
   let highest_version_dir = (
-    find-highest-version-dir
-      $indesign_prefs_dir
-      '^Version (?P<version>\d+)\.0$'
-      "No Adobe InDesign settings directories found."
+    find-highest-version-dir $indesign_prefs_dir
+    '^Version (?P<version>\d+)\.0$'
+    "No Adobe InDesign settings directories found."
   )
   let target_workspaces_dir = ($highest_version_dir | path join "en_US" "Workspaces")
 
@@ -143,21 +141,20 @@ def find-highest-version-dir [parent_dir: string, version_pattern: string, missi
   let matching_dirs = (
     ls $parent_dir
     | where type == "dir"
-    | each {|row|
-        let basename = ($row.name | path basename)
-        let parsed = ($basename | parse --regex $version_pattern)
+    | each { |row|
+      let basename = ($row.name | path basename)
+      let parsed = ($basename | parse --regex $version_pattern)
 
-        if ($parsed | is-empty) {
-          null
-        } else {
-          let entry = ($parsed | first)
-          {
-            name: $row.name
-            version: ($entry.version | into int)
-          }
+      if ($parsed | is-empty) {
+        null
+      } else {
+        let entry = ($parsed | first)
+        {
+          name: $row.name
+          version: ($entry.version | into int)
         }
       }
-    | compact
+    } | compact
   )
 
   if ($matching_dirs | is-empty) {
@@ -185,7 +182,7 @@ def configure-workspaces [app_name: string, source_workspaces_dir: string, targe
     let source_workspaces = (
       ls $source_workspaces_dir
       | get name
-      | each {|name| $name | path basename }
+      | each { |name| $name | path basename }
     )
 
     for workspace in $source_workspaces {
@@ -210,12 +207,12 @@ def configure-workspaces [app_name: string, source_workspaces_dir: string, targe
     let target_workspaces = (
       ls $target_workspaces_dir
       | get name
-      | each {|name| $name | path basename }
+      | each { |name| $name | path basename }
     )
 
     # Pull unmanaged existing workspaces into the repo, then link them back out.
     for workspace in $target_workspaces {
-      if ($source_workspaces | any {|source_workspace| $source_workspace == $workspace }) {
+      if ($source_workspaces | any { |source_workspace| $source_workspace == $workspace }) {
         continue
       }
 
@@ -232,7 +229,7 @@ def configure-workspaces [app_name: string, source_workspaces_dir: string, targe
       ^ln -s $source_workspace_path $target_workspace_path
       print $"Symlink created: ($source_workspace_path) -> ($target_workspace_path)"
     }
-  } catch {|err|
+  } catch { |err|
     print --stderr $err.msg
   }
 }

@@ -4,3 +4,6 @@ pub mod nushell;
 
 pub use configuration::Configuration;
 pub use formatter::format_text;
+
+#[cfg(test)]
+mod __tests__;
