@@ -904,8 +904,14 @@ fn join_with_previous_line(
     }
 
     let previous_output = last_output_line(result)?;
-    let separator =
-        join_separator(previous_output, previous_source, content, lines, index, line_width)?;
+    let separator = join_separator(
+        previous_output,
+        previous_source,
+        content,
+        lines,
+        index,
+        line_width,
+    )?;
     let candidate_length = previous_output.len() + separator.len() + line_body.len();
 
     (candidate_length <= line_width).then_some(separator)
@@ -1293,7 +1299,8 @@ fn should_expand_half_compacted_pipeline_line(
         return false;
     }
 
-    let next_is_pipe = next_nonempty_content(lines, index).is_some_and(|next| next.starts_with('|'));
+    let next_is_pipe =
+        next_nonempty_content(lines, index).is_some_and(|next| next.starts_with('|'));
     let current_is_pipe = lines[index].text.trim_start().starts_with('|');
 
     if !(current_is_pipe || next_is_pipe) {
