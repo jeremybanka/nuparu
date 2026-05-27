@@ -416,7 +416,7 @@ fn should_preserve_multiline_group_expression(
         return false;
     }
 
-    count_significant_group_expression_lines(lines, start_line, end_line) >= 2
+    count_significant_group_expression_lines(lines, start_line, end_line) >= 3
 }
 
 fn count_significant_group_expression_lines(
@@ -436,7 +436,7 @@ fn count_significant_group_expression_lines(
             .chars()
             .all(|ch| ch.is_ascii_whitespace() || matches!(ch, '(' | ')' | '[' | ']' | '{' | '}'));
 
-        if structural_only {
+        if structural_only || content == "|" {
             continue;
         }
 
@@ -718,6 +718,15 @@ fn restore_separator_spaces(text: &str) -> String {
             '[' | '(' => {
                 delimiter_stack.push(ch);
                 result.push(ch);
+
+                if ch == '(' {
+                    while chars
+                        .get(index + 1)
+                        .is_some_and(|next| next.is_ascii_whitespace())
+                    {
+                        index += 1;
+                    }
+                }
             }
             '{' => {
                 delimiter_stack.push(ch);
@@ -752,6 +761,12 @@ fn restore_separator_spaces(text: &str) -> String {
                 in_closure_signature = false;
             }
             ':' => {
+                if delimiter_stack
+                    .last()
+                    .is_some_and(|delimiter| matches!(delimiter, '[' | '{'))
+                {
+                    trim_trailing_spaces(&mut result);
+                }
                 result.push(ch);
                 if delimiter_stack
                     .last()
@@ -913,6 +928,12 @@ fn join_separator(
         return Some(" ");
     }
 
+    if can_join_compact_group_expression_opener(previous_output)
+        && is_simple_expression_start(content)
+    {
+        return Some("");
+    }
+
     if content.starts_with('|') {
         if previous_output.ends_with('{') && is_closure_signature(content) {
             return Some(" ");
@@ -941,12 +962,27 @@ fn join_separator(
         return Some(" ");
     }
 
+    if previous_output.ends_with('|')
+        && !contains_closure_signature(previous_output)
+        && is_simple_expression_start(content)
+    {
+        return Some(" ");
+    }
+
     if starts_with_boolean_connector(content) && previous_output.ends_with('(') {
         return Some(" ");
     }
 
     if starts_with_boolean_connector(content) && current_indent == previous_indent {
         return Some(" ");
+    }
+
+    if starts_with_infix_operator(content) && current_indent == previous_indent {
+        return Some(" ");
+    }
+
+    if content == ")" && can_join_inline_group_closer(previous_output) {
+        return Some("");
     }
 
     if previous_output.ends_with(':') && continuation_indent && is_type_continuation(content) {
@@ -976,6 +1012,10 @@ fn join_separator(
         && !is_catch_clause_line(previous_output)
         && should_join_closure_body_line(lines, index, content)
     {
+        return Some(" ");
+    }
+
+    if content == "}" && can_join_inline_block_closer(previous_output) {
         return Some(" ");
     }
 
@@ -1039,6 +1079,12 @@ fn follows_split_parenthesized_block_header(lines: &[SourceLine<'_>], index: usi
 
 fn starts_with_boolean_connector(content: &str) -> bool {
     content.starts_with("and ") || content.starts_with("or ")
+}
+
+fn starts_with_infix_operator(content: &str) -> bool {
+    ["==", "!=", ">=", "<=", ">", "<"]
+        .into_iter()
+        .any(|operator| content.starts_with(operator))
 }
 
 fn is_type_continuation(content: &str) -> bool {
@@ -1172,6 +1218,39 @@ fn contains_closure_signature(content: &str) -> bool {
     }
 
     false
+}
+
+fn can_join_inline_block_closer(previous_output: &str) -> bool {
+    last_unmatched_open_brace(previous_output)
+        .map(|open_brace| previous_output[open_brace + 1..].trim())
+        .is_some_and(|after_brace| !after_brace.is_empty() && !is_closure_signature(after_brace))
+}
+
+fn can_join_compact_group_expression_opener(previous_output: &str) -> bool {
+    let trimmed = previous_output.trim_end();
+    trimmed == "(" || trimmed.ends_with("= (") || trimmed.ends_with("return (")
+}
+
+fn can_join_inline_group_closer(previous_output: &str) -> bool {
+    last_unmatched_open_paren(previous_output)
+        .map(|open_paren| previous_output[open_paren + 1..].trim())
+        .is_some_and(|after_paren| !after_paren.is_empty())
+}
+
+fn last_unmatched_open_paren(content: &str) -> Option<usize> {
+    let mut unmatched_open_parens = Vec::new();
+
+    for (index, ch) in content.char_indices() {
+        match ch {
+            '(' => unmatched_open_parens.push(index),
+            ')' => {
+                unmatched_open_parens.pop();
+            }
+            _ => {}
+        }
+    }
+
+    unmatched_open_parens.last().copied()
 }
 
 fn leading_indent(text: &str) -> usize {

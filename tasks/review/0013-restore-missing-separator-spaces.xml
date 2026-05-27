@@ -1,6 +1,6 @@
 <task>
   <id>0013</id>
-  <status>open</status>
+  <status>review</status>
   <priority>P1</priority>
   <title>Restore missing separator spaces in formatter output</title>
   <summary>

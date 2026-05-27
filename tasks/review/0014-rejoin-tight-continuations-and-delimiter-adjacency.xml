@@ -1,6 +1,6 @@
 <task>
   <id>0014</id>
-  <status>open</status>
+  <status>review</status>
   <priority>P1</priority>
   <title>Rejoin tight continuations and delimiter adjacency</title>
   <summary>

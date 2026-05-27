@@ -1,0 +1,35 @@
+<task>
+  <id>0015</id>
+  <status>open</status>
+  <priority>P2</priority>
+  <title>Preserve broken pipeline-head layout in multiline blocks</title>
+  <summary>
+    The formatter now repairs several tight continuation issues, but it still
+    sometimes over-compacts the head of a pipeline even when the surrounding
+    pipeline is intentionally multiline.
+  </summary>
+  <problem>
+    In `lima-ports.nu`, a multiline pipeline inside the `else` branch currently
+    reforms from:
+    `ls $lima_dir`
+    `| where type == dir`
+    into `ls $lima_dir | where type == dir` while the remaining stages stay on
+    later lines. That creates an inconsistent shape where only the first stage
+    collapses upward. This is not the same problem as restoring a broken
+    comparison continuation; it is a layout decision about whether a pipeline
+    that is already broken across lines should keep its head on its own line.
+  </problem>
+  <affectedFiles>
+    <file>fixtures/dotfiles/scripts/lima-ports.nu</file>
+  </affectedFiles>
+  <relatedCode>
+    <path>crates/nuparu-core/src/formatter.rs</path>
+    <path>crates/nuparu-core/src/__tests__/formatter.rs</path>
+    <path>tasks/review/0014-rejoin-tight-continuations-and-delimiter-adjacency.xml</path>
+  </relatedCode>
+  <acceptanceCriteria>
+    <criterion>When a pipeline is already multiline and subsequent stages remain on later lines, the formatter preserves the pipeline head on its own line instead of collapsing only the first stage upward.</criterion>
+    <criterion>The formatter still restores genuinely broken operator continuations like `where type` followed by `== dir` when that is the actual residue.</criterion>
+    <criterion>Regression coverage is drawn from the real `lima-ports.nu` fixture shape.</criterion>
+  </acceptanceCriteria>
+</task>

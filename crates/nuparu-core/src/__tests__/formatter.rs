@@ -423,21 +423,30 @@ fn rejoins_split_where_comparison_continuation() {
 fn rejoins_grouped_pipeline_with_bare_pipe_line() {
     let input = "let output_path = (\n  $cache_dir\n  |\n  path join $file_name\n)\n";
     let output = format_text(input, &Configuration::default());
-    assert_eq!(output, "let output_path = ($cache_dir | path join $file_name)\n");
+    assert_eq!(
+        output,
+        "let output_path = ($cache_dir | path join $file_name)\n"
+    );
 }
 
 #[test]
 fn removes_space_after_group_opener_in_simple_subexpression() {
     let input = "let config = ( open --raw $config_path | from yaml)\n";
     let output = format_text(input, &Configuration::default());
-    assert_eq!(output, "let config = (open --raw $config_path | from yaml)\n");
+    assert_eq!(
+        output,
+        "let config = (open --raw $config_path | from yaml)\n"
+    );
 }
 
 #[test]
 fn rejoins_trivial_inline_else_block_body() {
     let input = "let scheme = if $host == 443 { \"https\" } else { \"http\"\n}\n";
     let output = format_text(input, &Configuration::default());
-    assert_eq!(output, "let scheme = if $host == 443 { \"https\" } else { \"http\" }\n");
+    assert_eq!(
+        output,
+        "let scheme = if $host == 443 { \"https\" } else { \"http\" }\n"
+    );
 }
 
 #[test]
