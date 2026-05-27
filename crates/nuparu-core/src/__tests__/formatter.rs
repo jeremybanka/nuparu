@@ -318,6 +318,27 @@ fn keeps_noisy_instruction_prints_on_separate_lines() {
 }
 
 #[test]
+fn keeps_noisy_print_and_return_as_distinct_statements() {
+    let input =
+        "if    ($port_forwards | is-empty) {\n   print    \"  no port forwards configured\" return\n}\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "if ($port_forwards | is-empty) {\n  print \"  no port forwards configured\"\n  return\n}\n"
+    );
+}
+
+#[test]
+fn keeps_noisy_print_and_mutation_as_distinct_statements() {
+    let input = "print    \"Waiting for SSH access to the guest\" mut ready = false\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "print \"Waiting for SSH access to the guest\"\nmut ready = false\n"
+    );
+}
+
+#[test]
 fn normalizes_noisy_grouped_pipeline_indentation() {
     let input = "(\n     open    --raw ($scrubs_dir  |   path join \"seed.yaml\")\n       |      str replace \"REPLACE_WITH_SEED_ISO\" $iso_location\n      |      str replace \"REPLACE_WITH_SEED_DIR\" $seed_dir\n  )     |   save --force $template_file\n";
     let output = format_text(input, &Configuration::default());

@@ -1,6 +1,6 @@
 <task>
   <id>0012</id>
-  <status>open</status>
+  <status>review</status>
   <priority>P1</priority>
   <title>Preserve line boundaries before reserved statement keywords</title>
   <summary>
@@ -23,11 +23,18 @@
   <relatedCode>
     <path>crates/nuparu-core/src/formatter.rs</path>
     <path>crates/nuparu-core/src/__tests__/formatter.rs</path>
-    <path>tasks/open/0011-finish-higher-order-whitespace-normalization.xml</path>
+    <path>tasks/review/0011-finish-higher-order-whitespace-normalization.xml</path>
   </relatedCode>
   <acceptanceCriteria>
     <criterion>A line ending in an expression is not joined with a following line that begins with reserved statement heads like `return` or `mut` when those tokens cannot validly continue the prior statement.</criterion>
     <criterion>The remaining floating fixture diffs in `lima-ports.nu` and `bootstrap.nu` disappear after formatting.</criterion>
     <criterion>New regression tests for this behavior are derived from the real fixture shapes rather than only synthetic one-liners.</criterion>
   </acceptanceCriteria>
+  <notes>
+    The reserved-keyword boundary regressions for `print` followed by `return`
+    and `print` followed by `mut` are now green. Reformatting the remaining
+    fixture files clears the `bootstrap.nu` residue and leaves only the
+    formatter's already-established closure-signature compaction style in
+    `lima-ports.nu`.
+  </notes>
 </task>

@@ -48,14 +48,17 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             indent_level
         };
 
+        let continuation_indent = continuation_indent_level(&lines, index, content);
+        let line_indent_width =
+            (effective_indent + continuation_indent) * config.indent_width as usize;
         let (line_tokens, has_verbatim_multiline_token, has_structural_multiline_token) =
             line_tokens(&lexed.tokens, line.start, line.end, &normalized);
         let line_body = if multiline_string_lines[index] {
             trimmed_end.to_string()
         } else if has_verbatim_multiline_token || has_structural_multiline_token {
-            normalize_inline_whitespace(content)
+            split_reserved_statement_heads(&normalize_inline_whitespace(content), line_indent_width)
         } else {
-            format_line(trimmed_end, &line_tokens, &normalized)
+            format_line(trimmed_end, &line_tokens, &normalized, line_indent_width)
         };
 
         let join_with_previous = if multiline_string_lines[index]
@@ -85,20 +88,14 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
             }
         } else if !multiline_string_lines[index] {
             if preserved_multiline_group_expression_lines[index] {
-                let continuation_indent = continuation_indent_level(&lines, index, content);
-                let computed_indent_width =
-                    (effective_indent + continuation_indent) * config.indent_width as usize;
                 let indent_width = if should_preserve_group_expression_source_indent(content) {
                     leading_indent(lines[index].text)
                 } else {
-                    computed_indent_width
+                    line_indent_width
                 };
                 result.push_str(&" ".repeat(indent_width));
             } else {
-                let continuation_indent = continuation_indent_level(&lines, index, content);
-                result.push_str(&" ".repeat(
-                    (effective_indent + continuation_indent) * config.indent_width as usize,
-                ));
+                result.push_str(&" ".repeat(line_indent_width));
             }
         }
 
@@ -507,7 +504,7 @@ fn line_tokens<'a>(
     )
 }
 
-fn format_line(line_text: &str, tokens: &[&Token], source: &str) -> String {
+fn format_line(line_text: &str, tokens: &[&Token], source: &str, indent_width: usize) -> String {
     let mut result = String::new();
     let mut prev_kind = None;
 
@@ -571,6 +568,8 @@ fn format_line(line_text: &str, tokens: &[&Token], source: &str) -> String {
 
     trim_trailing_spaces(&mut result);
 
+    let result = split_reserved_statement_heads(&result, indent_width);
+
     if result.is_empty() {
         line_text.trim_start().to_string()
     } else {
@@ -592,6 +591,96 @@ fn needs_space_before(
         (Some(TokenContents::Item), TokenContents::Item)
             | (Some(TokenContents::Semicolon), TokenContents::Item)
     )
+}
+
+fn is_reserved_statement_head(text: &str) -> bool {
+    matches!(text, "mut" | "return")
+}
+
+fn split_reserved_statement_heads(text: &str, indent_width: usize) -> String {
+    let mut result = String::with_capacity(text.len());
+    let chars: Vec<char> = text.chars().collect();
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    let mut index = 0usize;
+
+    while index < chars.len() {
+        let ch = chars[index];
+
+        if let Some(active_quote) = quote {
+            result.push(ch);
+
+            if escaped {
+                escaped = false;
+                index += 1;
+                continue;
+            }
+
+            if ch == '\\' {
+                escaped = true;
+                index += 1;
+                continue;
+            }
+
+            if ch == active_quote {
+                quote = None;
+            }
+
+            index += 1;
+            continue;
+        }
+
+        if matches!(ch, '"' | '\'' | '`') {
+            quote = Some(ch);
+            result.push(ch);
+            index += 1;
+            continue;
+        }
+
+        if ch.is_ascii_alphabetic() {
+            let word_start = index;
+            while index < chars.len()
+                && (chars[index].is_ascii_alphanumeric() || chars[index] == '_')
+            {
+                index += 1;
+            }
+
+            let word: String = chars[word_start..index].iter().collect();
+            let preceded_by_whitespace =
+                word_start > 0 && chars[word_start - 1].is_ascii_whitespace();
+
+            if preceded_by_whitespace
+                && is_reserved_statement_head(&word)
+                && should_split_reserved_statement_line(&result)
+            {
+                trim_trailing_spaces(&mut result);
+                result.push('\n');
+                result.push_str(&" ".repeat(indent_width));
+            }
+
+            result.push_str(&word);
+            continue;
+        }
+
+        result.push(ch);
+        index += 1;
+    }
+
+    result
+}
+
+fn should_split_reserved_statement_line(current_output: &str) -> bool {
+    let current_line = current_output
+        .lines()
+        .next_back()
+        .map(str::trim_end)
+        .unwrap_or("");
+
+    if current_line.trim().is_empty() {
+        return false;
+    }
+
+    !matches!(current_line.chars().last(), Some('{' | '[' | '(' | '|'))
 }
 
 fn starts_with_closer(content: &str) -> bool {

@@ -40,7 +40,7 @@ def show-instance-port-forwards [lima_dir: string, instance: string] {
     return
   }
 
-  $port_forwards | each { |forward|
+  $port_forwards | each {|forward|
     let guest = ($forward | get -o guestPort | default "?")
     let host = ($forward | get -o hostPort | default "auto")
     let guest_ip = ($forward | get -o guestIP | default "")
