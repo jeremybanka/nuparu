@@ -13,7 +13,8 @@
     earlier whitespace-collapse work: tokens that should be visually separated
     remain jammed together after formatting. Current examples include typed
     parameter forms like `instance_name?:string`, closure signatures like
-    `where {|entry|...}`, brace-adjacent record or error forms like
+    `where {|entry|...}` that should normalize to `where { |entry| ... }`,
+    brace-adjacent record or error forms like
     `msg: ...\"}`, and pipeline/call boundaries like `|save --force ...`. These
     are formatter-scope spacing decisions, not semantic reconstruction.
   </problem>
@@ -30,7 +31,7 @@
   </relatedCode>
   <acceptanceCriteria>
     <criterion>Typed parameter and binding shapes restore the formatter's normal separator spacing around `:` and `?` boundaries where the syntax expects them.</criterion>
-    <criterion>Closure signatures and brace-adjacent forms restore the house spacing around `{`, `|`, and `}` instead of preserving jammed-together source text.</criterion>
+    <criterion>Closure signatures and brace-adjacent forms restore the house spacing around `{`, `|`, and `}`, preferring forms like `{ |entry| ... }` instead of preserving jammed-together source text.</criterion>
     <criterion>Pipeline and command boundaries restore missing spaces, including forms like `| save` rather than `|save`.</criterion>
     <criterion>Regression tests are drawn from the real fixture residue in `lima-ports.nu` and `download-latest-iso.nu`, not only from synthetic one-liners.</criterion>
   </acceptanceCriteria>

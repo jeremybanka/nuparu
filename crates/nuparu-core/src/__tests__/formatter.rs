@@ -23,11 +23,11 @@ fn normalizes_block_indentation() {
 
 #[test]
 fn preserves_pipeline_indentation_inside_blocks() {
-    let input = "def demo [] {\nopen --raw foo\n| lines\n| each {|line| $line }\n}\n";
+    let input = "def demo [] {\nopen --raw foo\n| lines\n| each { |line| $line }\n}\n";
     let output = format_text(input, &Configuration::default());
     assert_eq!(
         output,
-        "def demo [] {\n  open --raw foo\n  | lines\n  | each {|line| $line }\n}\n"
+        "def demo [] {\n  open --raw foo\n  | lines\n  | each { |line| $line }\n}\n"
     );
 }
 
@@ -106,7 +106,7 @@ fn rejoins_short_pipelines() {
 
 #[test]
 fn keeps_long_pipelines_broken_when_they_exceed_line_width() {
-    let input = "open --raw $settings_file\n| lines\n| each {|line| $line | str trim }\n| where {|line| $line != \"\" and not ($line | str starts-with \"#\") }\n";
+    let input = "open --raw $settings_file\n| lines\n| each { |line| $line | str trim }\n| where { |line| $line != \"\" and not ($line | str starts-with \"#\") }\n";
     let output = format_text(input, &Configuration::default());
     assert_eq!(output, input);
 }
@@ -189,7 +189,7 @@ fn keeps_branch_record_literal_separate_from_preceding_lets() {
 fn rejoins_closure_signatures_and_simple_bodies() {
     let input = "items\n| each {\n  |line|\n  $line | str trim\n}\n";
     let output = format_text(input, &Configuration::default());
-    assert_eq!(output, "items | each {|line| $line | str trim }\n");
+    assert_eq!(output, "items | each { |line| $line | str trim }\n");
 }
 
 #[test]
@@ -246,7 +246,7 @@ fn keeps_print_and_mutation_as_distinct_statements() {
 
 #[test]
 fn keeps_real_fixture_if_branch_body_on_its_own_line() {
-    let input = "export def get-setting [\n  settings: record\n  key: string\n  default_value: any = null\n] {\n  if ($env | columns | any {|column| $column == $key }) {\n    $env | get $key\n  } else if ($settings | columns | any {|column| $column == $key }) {\n    $settings | get $key\n  } else {\n    $default_value\n  }\n}\n";
+    let input = "export def get-setting [\n  settings: record\n  key: string\n  default_value: any = null\n] {\n  if ($env | columns | any { |column| $column == $key }) {\n    $env | get $key\n  } else if ($settings | columns | any { |column| $column == $key }) {\n    $settings | get $key\n  } else {\n    $default_value\n  }\n}\n";
     let output = format_text(input, &Configuration::default());
     assert_eq!(output, input);
 }
@@ -319,8 +319,7 @@ fn keeps_noisy_instruction_prints_on_separate_lines() {
 
 #[test]
 fn keeps_noisy_print_and_return_as_distinct_statements() {
-    let input =
-        "if    ($port_forwards | is-empty) {\n   print    \"  no port forwards configured\" return\n}\n";
+    let input = "if    ($port_forwards | is-empty) {\n   print    \"  no port forwards configured\" return\n}\n";
     let output = format_text(input, &Configuration::default());
     assert_eq!(
         output,
@@ -397,6 +396,16 @@ fn restores_missing_space_before_record_closer() {
 }
 
 #[test]
+fn restores_missing_space_after_pipe_before_command() {
+    let input = "$\"($sha256)  ($file_name)\\n\" |save --force $sha256_file\n";
+    let output = format_text(input, &Configuration::default());
+    assert_eq!(
+        output,
+        "$\"($sha256)  ($file_name)\\n\" | save --force $sha256_file\n"
+    );
+}
+
+#[test]
 fn normalizes_noisy_grouped_pipeline_indentation() {
     let input = "(\n     open    --raw ($scrubs_dir  |   path join \"seed.yaml\")\n       |      str replace \"REPLACE_WITH_SEED_ISO\" $iso_location\n      |      str replace \"REPLACE_WITH_SEED_DIR\" $seed_dir\n  )     |   save --force $template_file\n";
     let output = format_text(input, &Configuration::default());
@@ -412,7 +421,7 @@ fn normalizes_noisy_each_closure_compact_tail_layout() {
     let output = format_text(input, &Configuration::default());
     assert_eq!(
         output,
-        "let matching_dirs = (\n  ls $parent_dir\n  | where type == \"dir\"\n  | each {|row|\n    let basename = ($row.name | path basename)\n    let parsed = ($basename | parse --regex $version_pattern)\n\n    if ($parsed | is-empty) {\n      null\n    } else {\n      let entry = ($parsed | first)\n        {\n          name: $row.name\n          version: ($entry.version | into int)\n        }\n      }\n    }\n  | compact\n)\n"
+        "let matching_dirs = (\n  ls $parent_dir\n  | where type == \"dir\"\n  | each { |row|\n    let basename = ($row.name | path basename)\n    let parsed = ($basename | parse --regex $version_pattern)\n\n    if ($parsed | is-empty) {\n      null\n    } else {\n      let entry = ($parsed | first)\n        {\n          name: $row.name\n          version: ($entry.version | into int)\n        }\n      }\n    }\n  | compact\n)\n"
     );
 }
 
@@ -536,7 +545,7 @@ fn keeps_plain_grouped_multiline_expression_opener_on_its_own_line() {
 
 #[test]
 fn keeps_simple_catch_clause_multiline_in_fixture_shape() {
-    let input = "def configure-editor-settings [] {\n  try {\n    print \"configured\"\n  } catch {|err|\n    print --stderr $err.msg\n  }\n}\n";
+    let input = "def configure-editor-settings [] {\n  try {\n    print \"configured\"\n  } catch { |err|\n    print --stderr $err.msg\n  }\n}\n";
     let output = format_text(input, &Configuration::default());
     assert_eq!(output, input);
 }

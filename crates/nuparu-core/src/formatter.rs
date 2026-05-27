@@ -56,7 +56,10 @@ pub fn format_text(file_text: &str, config: &Configuration) -> String {
         let line_body = if multiline_string_lines[index] {
             trimmed_end.to_string()
         } else if has_verbatim_multiline_token || has_structural_multiline_token {
-            split_reserved_statement_heads(&normalize_inline_whitespace(content), line_indent_width)
+            restore_separator_spaces(&split_reserved_statement_heads(
+                &normalize_inline_whitespace(content),
+                line_indent_width,
+            ))
         } else {
             format_line(trimmed_end, &line_tokens, &normalized, line_indent_width)
         };
@@ -568,7 +571,7 @@ fn format_line(line_text: &str, tokens: &[&Token], source: &str, indent_width: u
 
     trim_trailing_spaces(&mut result);
 
-    let result = split_reserved_statement_heads(&result, indent_width);
+    let result = restore_separator_spaces(&split_reserved_statement_heads(&result, indent_width));
 
     if result.is_empty() {
         line_text.trim_start().to_string()
@@ -672,6 +675,155 @@ fn split_reserved_statement_heads(text: &str, indent_width: usize) -> String {
     result
 }
 
+fn restore_separator_spaces(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let chars: Vec<char> = text.chars().collect();
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    let mut delimiter_stack: Vec<char> = Vec::new();
+    let mut in_closure_signature = false;
+    let mut index = 0usize;
+
+    while index < chars.len() {
+        let ch = chars[index];
+
+        if let Some(active_quote) = quote {
+            result.push(ch);
+
+            if escaped {
+                escaped = false;
+                index += 1;
+                continue;
+            }
+
+            if ch == '\\' {
+                escaped = true;
+                index += 1;
+                continue;
+            }
+
+            if ch == active_quote {
+                quote = None;
+            }
+
+            index += 1;
+            continue;
+        }
+
+        match ch {
+            '"' | '\'' | '`' => {
+                quote = Some(ch);
+                result.push(ch);
+            }
+            '[' | '(' => {
+                delimiter_stack.push(ch);
+                result.push(ch);
+            }
+            '{' => {
+                delimiter_stack.push(ch);
+                result.push(ch);
+
+                if chars.get(index + 1) == Some(&'|') {
+                    result.push(' ');
+                }
+            }
+            ']' => {
+                if delimiter_stack.last() == Some(&'[') {
+                    delimiter_stack.pop();
+                }
+                result.push(ch);
+            }
+            ')' => {
+                if delimiter_stack.last() == Some(&'(') {
+                    delimiter_stack.pop();
+                }
+                result.push(ch);
+            }
+            '}' => {
+                if needs_space_before_inline_closer(&result) {
+                    trim_trailing_spaces(&mut result);
+                    result.push(' ');
+                }
+
+                if delimiter_stack.last() == Some(&'{') {
+                    delimiter_stack.pop();
+                }
+                result.push(ch);
+                in_closure_signature = false;
+            }
+            ':' => {
+                result.push(ch);
+                if delimiter_stack
+                    .last()
+                    .is_some_and(|delimiter| matches!(delimiter, '[' | '{'))
+                    && chars
+                        .get(index + 1)
+                        .is_some_and(|next| !next.is_ascii_whitespace())
+                {
+                    result.push(' ');
+                }
+            }
+            ',' => {
+                result.push(ch);
+                if delimiter_stack.last() == Some(&'[')
+                    && chars
+                        .get(index + 1)
+                        .is_some_and(|next| !next.is_ascii_whitespace())
+                {
+                    result.push(' ');
+                }
+            }
+            '|' => {
+                let previous_nonspace = result.chars().rev().find(|ch| !ch.is_ascii_whitespace());
+                let opening_closure_bar = previous_nonspace == Some('{')
+                    || (result.trim().is_empty() && looks_like_closure_signature(&chars, index));
+                let closing_closure_bar = in_closure_signature && !opening_closure_bar;
+
+                result.push(ch);
+
+                if opening_closure_bar {
+                    in_closure_signature = true;
+                } else if closing_closure_bar
+                    && chars
+                        .get(index + 1)
+                        .is_some_and(|next| !next.is_ascii_whitespace())
+                {
+                    result.push(' ');
+                    in_closure_signature = false;
+                } else if !in_closure_signature
+                    && chars
+                        .get(index + 1)
+                        .is_some_and(|next| !next.is_ascii_whitespace())
+                    && chars.get(index + 1) != Some(&'|')
+                {
+                    result.push(' ');
+                }
+            }
+            _ => result.push(ch),
+        }
+
+        index += 1;
+    }
+
+    result
+}
+
+fn needs_space_before_inline_closer(current_output: &str) -> bool {
+    current_output
+        .chars()
+        .rev()
+        .find(|ch| !ch.is_ascii_whitespace())
+        .is_some_and(|ch| !matches!(ch, '{' | '[' | '(' | '|'))
+}
+
+fn looks_like_closure_signature(chars: &[char], start_index: usize) -> bool {
+    if chars.get(start_index) != Some(&'|') {
+        return false;
+    }
+
+    chars[start_index + 1..].contains(&'|')
+}
+
 fn should_split_reserved_statement_line(current_output: &str, next_word: &str) -> bool {
     let current_line = current_output
         .lines()
@@ -694,8 +846,7 @@ fn should_split_reserved_statement_line(current_output: &str, next_word: &str) -
     }
 
     if next_word == "if"
-        && (trimmed.ends_with("else")
-            || matches!(trimmed.chars().last(), Some('=')))
+        && (trimmed.ends_with("else") || matches!(trimmed.chars().last(), Some('=')))
     {
         return false;
     }
@@ -764,7 +915,7 @@ fn join_separator(
 
     if content.starts_with('|') {
         if previous_output.ends_with('{') && is_closure_signature(content) {
-            return Some("");
+            return Some(" ");
         }
 
         let next_pipe = next_nonempty_content(lines, index).filter(|next| next.starts_with('|'));
