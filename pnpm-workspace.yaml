@@ -11,7 +11,7 @@ minimumReleaseAgeExclude:
 
 catalog:
   "@changesets/cli": 2.31.0
-  "@types/node": 25.9.1
+  "@types/node": 25.9.2
   "@types/vscode": 1.120.0
   "@typescript/native-preview": 7.0.0-dev.20260606.1
   "@vscode/vsce": 3.9.2
